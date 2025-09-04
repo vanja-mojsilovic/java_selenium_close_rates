@@ -1,16 +1,25 @@
 package com.spothopper;
 
+import java.util.ArrayList;
+import org.openqa.selenium.By;
 import java.time.Duration;
-
+import java.util.List;
 import org.jboss.aerogear.security.otp.Totp;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.chrome.ChromeOptions;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import java.util.HashMap;
+import java.util.Map;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import io.github.cdimascio.dotenv.Dotenv;
 
@@ -58,6 +67,18 @@ public class SignInTest {
     @FindBy(xpath = "//small[contains(text(),'587184')]")
     WebElement hubspotAccountElement;
 
+    @FindBy(xpath = "//div[@data-test-id='report-loaded']//table")
+    WebElement tableWithOwnersAndCounts;
+
+    @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//tr/td[1]")
+    List<WebElement> tableWithOwnerNames;
+
+    private static final By OWNER_NAME_CELLS = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[1]");
+
+    @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//tr/td[2]")
+    List<WebElement> tableWithCompanyCounts;
+
+
     // Constructor *********************
     public SignInTest(WebDriver driver) {
         this.driver = driver;
@@ -80,6 +101,13 @@ public class SignInTest {
         return new ChromeDriver(options);
     }
 
+    public void clickElementWithScroll(WebElement enteredElement) {
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", enteredElement);
+        enteredElement.click();
+    }
+
+
     public static boolean isCIEnvironment() {
         String ci = System.getenv("CI");
         return ci != null && ci.equalsIgnoreCase("true");
@@ -99,6 +127,12 @@ public class SignInTest {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSec));
         return wait.until(ExpectedConditions.visibilityOf(element));
     }
+
+    public List<WebElement> waitForVisibilityOfElements(List<WebElement> elements, int numOfSec) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSec));
+        return wait.until(ExpectedConditions.visibilityOfAllElements(elements));
+    }
+
 
     public static void sleep(int numOfMilliseconds) {
         try {
@@ -179,6 +213,29 @@ public class SignInTest {
         element.click();
     }
 
+    public void scrollIntoViewTable() {
+        WebElement element = waitForVisibilityOfElement(tableWithOwnersAndCounts, 10);
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element);
+    }
+
+    public List<String> getOwnerNames() {
+        List<String> result = new ArrayList<>();
+        List<WebElement> elements = driver.findElements(OWNER_NAME_CELLS);
+        elements = waitForVisibilityOfElements(elements, 10);
+        for (WebElement element : elements) {
+            String name = element.getText().trim();
+            result.add(name);
+            System.out.println(name);
+        }
+        return result;
+    }
+
+
+
+
+   
+
     // Main method *****************
     public static void main(String[] args) {
         
@@ -215,9 +272,14 @@ public class SignInTest {
         sleep(2000);
         driver.get("https://app.hubspot.com");
         signInTest.clickHubspotAccountElement();
-        driver.get("https://app.hubspot.com/reports-dashboard/587184/view/12820555");
-        
+        driver.get("https://app.hubspot.com/reports-dashboard/587184/view/12820555/113078679");
+        sleep(8000);
+        signInTest.scrollIntoViewTable();
+        signInTest.getOwnerNames();
 
+
+
+        sleep(3000);
         driver.quit(); 
     }
 }
