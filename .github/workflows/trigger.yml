@@ -46,14 +46,16 @@ jobs:
         # WebDriverManager
         wget -O lib/webdrivermanager.jar https://repo1.maven.org/maven2/io/github/bonigarcia/webdrivermanager/5.6.3/webdrivermanager-5.6.3.jar
 
-        # Dotenv
+        # Dotenv (Kotlin-based)
         wget -O lib/dotenv.jar https://repo1.maven.org/maven2/io/github/cdimascio/java-dotenv/5.2.2/java-dotenv-5.2.2.jar
+        wget -O lib/kotlin-stdlib.jar https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.9.10/kotlin-stdlib-1.9.10.jar
 
         # Aerogear OTP
         wget -O lib/aerogear-otp.jar https://repo1.maven.org/maven2/org/jboss/aerogear/aerogear-otp-java/1.0.0/aerogear-otp-java-1.0.0.jar
 
         # Guava (for ExpectedConditions)
         wget -O lib/guava.jar https://repo1.maven.org/maven2/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar
+
 
 
 
