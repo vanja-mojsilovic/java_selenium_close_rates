@@ -57,7 +57,7 @@ jobs:
         wget -O lib/guava.jar https://repo1.maven.org/maven2/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar
 
         # Apache HttpComponents (required by WebDriverManager)
-        wget -O lib/httpcore5.jar https://repo1.maven.org/maven2/org/apache/httpcomponents/client5/httpcore5/5.2.1/httpcore5-5.2.1.jar
+        wget -O lib/httpcore5.jar https://repo1.maven.org/maven2/org/apache/httpcomponents/core5/httpcore5/5.2.1/httpcore5-5.2.1.jar
         wget -O lib/httpclient5.jar https://repo1.maven.org/maven2/org/apache/httpcomponents/client5/httpclient5/5.2.1/httpclient5-5.2.1.jar
 
     - name: Compile and run SignInTest
