@@ -1,8 +1,7 @@
 name: Minimal
 
 on:
-  push:
-    branches: [ main ]
+  
   workflow_dispatch:
 
 jobs:
