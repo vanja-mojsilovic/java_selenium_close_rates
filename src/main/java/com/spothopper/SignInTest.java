@@ -187,7 +187,6 @@ public class SignInTest {
         String googleTotPin = getSecret("GOOGLE_TOTPIN_VANJA");
         String hubspotTotPin = getSecret("HUBSPOT_TOTPIN_VANJA");
         WebDriverManager.chromedriver().setup();
-        //WebDriver driver = new ChromeDriver();
         WebDriver driver = createWebDriver();
         driver.get("https://app.hubspot.com");
         sleep(2000);

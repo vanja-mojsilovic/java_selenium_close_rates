@@ -1,4 +1,4 @@
-name: Run HubSpot Sign-In Test
+name: Trigger
 
 on:
   workflow_dispatch:
@@ -30,15 +30,6 @@ jobs:
         sudo apt-get install -y wget unzip xvfb libxi6
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
-
-    - name: Set up ChromeDriver
-      run: |
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-        echo "Detected Chrome version: $CHROME_VERSION"
-        wget https://chromedriver.storage.googleapis.com/${CHROME_VERSION}/chromedriver_linux64.zip || wget https://chromedriver.storage.googleapis.com/116.0.5845.96/chromedriver_linux64.zip
-        unzip chromedriver_linux64.zip
-        sudo mv chromedriver /usr/local/bin/
-        chromedriver --version
 
     - name: Run SignInTest
       run: |
