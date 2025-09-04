@@ -34,10 +34,22 @@ jobs:
     - name: Download dependencies
       run: |
         mkdir -p lib
-        wget -O lib/selenium.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/4.16.1/selenium-java-4.16.1.jar
+
+        # Selenium core jars
+        wget -O lib/selenium-api.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-api/4.16.1/selenium-api-4.16.1.jar
+        wget -O lib/selenium-chrome-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chrome-driver/4.16.1/selenium-chrome-driver-4.16.1.jar
+        wget -O lib/selenium-support.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-support/4.16.1/selenium-support-4.16.1.jar
+        wget -O lib/selenium-java.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/4.16.1/selenium-java-4.16.1.jar
+
+        # WebDriverManager
         wget -O lib/webdrivermanager.jar https://repo1.maven.org/maven2/io/github/bonigarcia/webdrivermanager/5.6.3/webdrivermanager-5.6.3.jar
+
+        # Dotenv
         wget -O lib/dotenv.jar https://repo1.maven.org/maven2/io/github/cdimascio/java-dotenv/5.2.2/java-dotenv-5.2.2.jar
+
+        # Aerogear OTP
         wget -O lib/aerogear-otp.jar https://repo1.maven.org/maven2/org/jboss/aerogear/aerogear-otp-java/1.0.0/aerogear-otp-java-1.0.0.jar
+
 
     - name: Compile and run SignInTest
       run: |
