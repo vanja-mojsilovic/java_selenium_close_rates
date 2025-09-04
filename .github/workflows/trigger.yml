@@ -31,30 +31,34 @@ jobs:
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
-    - name: Download dependencies
-      run: |
-        mkdir -p lib
+        - name: Download dependencies
+          run: |
+            mkdir -p lib
 
-        # Selenium core modules
-        wget -O lib/selenium-api.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-api/4.16.1/selenium-api-4.16.1.jar
-        wget -O lib/selenium-chrome-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chrome-driver/4.16.1/selenium-chrome-driver-4.16.1.jar
-        wget -O lib/selenium-chromium-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chromium-driver/4.16.1/selenium-chromium-driver-4.16.1.jar
-        wget -O lib/selenium-support.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-support/4.16.1/selenium-support-4.16.1.jar
-        wget -O lib/selenium-remote-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-remote-driver/4.16.1/selenium-remote-driver-4.16.1.jar
-        wget -O lib/selenium-java.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/4.16.1/selenium-java-4.16.1.jar
+            # Selenium core modules
+            wget -O lib/selenium-api.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-api/4.16.1/selenium-api-4.16.1.jar
+            wget -O lib/selenium-chrome-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chrome-driver/4.16.1/selenium-chrome-driver-4.16.1.jar
+            wget -O lib/selenium-chromium-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chromium-driver/4.16.1/selenium-chromium-driver-4.16.1.jar
+            wget -O lib/selenium-support.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-support/4.16.1/selenium-support-4.16.1.jar
+            wget -O lib/selenium-remote-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-remote-driver/4.16.1/selenium-remote-driver-4.16.1.jar
+            wget -O lib/selenium-java.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/4.16.1/selenium-java-4.16.1.jar
 
-        # WebDriverManager
-        wget -O lib/webdrivermanager.jar https://repo1.maven.org/maven2/io/github/bonigarcia/webdrivermanager/5.6.3/webdrivermanager-5.6.3.jar
+            # WebDriverManager
+            wget -O lib/webdrivermanager.jar https://repo1.maven.org/maven2/io/github/bonigarcia/webdrivermanager/5.6.3/webdrivermanager-5.6.3.jar
 
-        # Dotenv (Kotlin-based)
-        wget -O lib/dotenv.jar https://repo1.maven.org/maven2/io/github/cdimascio/java-dotenv/5.2.2/java-dotenv-5.2.2.jar
-        wget -O lib/kotlin-stdlib.jar https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.9.10/kotlin-stdlib-1.9.10.jar
+            # Dotenv (Kotlin-based)
+            wget -O lib/dotenv.jar https://repo1.maven.org/maven2/io/github/cdimascio/java-dotenv/5.2.2/java-dotenv-5.2.2.jar
+            wget -O lib/kotlin-stdlib.jar https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.9.10/kotlin-stdlib-1.9.10.jar
 
-        # Aerogear OTP
-        wget -O lib/aerogear-otp.jar https://repo1.maven.org/maven2/org/jboss/aerogear/aerogear-otp-java/1.0.0/aerogear-otp-java-1.0.0.jar
+            # Aerogear OTP
+            wget -O lib/aerogear-otp.jar https://repo1.maven.org/maven2/org/jboss/aerogear/aerogear-otp-java/1.0.0/aerogear-otp-java-1.0.0.jar
 
-        # Guava (for ExpectedConditions)
-        wget -O lib/guava.jar https://repo1.maven.org/maven2/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar
+            # Guava
+            wget -O lib/guava.jar https://repo1.maven.org/maven2/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar
+
+            # Apache HttpComponents (required by WebDriverManager)
+            wget -O lib/httpcore5.jar https://repo1.maven.org/maven2/org/apache/httpcomponents/client5/httpcore5/5.2.1/httpcore5-5.2.1.jar
+            wget -O lib/httpclient5.jar https://repo1.maven.org/maven2/org/apache/httpcomponents/client5/httpclient5/5.2.1/httpclient5-5.2.1.jar
 
 
 
