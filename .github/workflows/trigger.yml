@@ -40,6 +40,7 @@ jobs:
         wget -O lib/selenium-chrome-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chrome-driver/4.16.1/selenium-chrome-driver-4.16.1.jar
         wget -O lib/selenium-chromium-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-chromium-driver/4.16.1/selenium-chromium-driver-4.16.1.jar
         wget -O lib/selenium-support.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-support/4.16.1/selenium-support-4.16.1.jar
+        wget -O lib/selenium-remote-driver.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-remote-driver/4.16.1/selenium-remote-driver-4.16.1.jar
         wget -O lib/selenium-java.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/4.16.1/selenium-java-4.16.1.jar
 
         # WebDriverManager
@@ -51,8 +52,9 @@ jobs:
         # Aerogear OTP
         wget -O lib/aerogear-otp.jar https://repo1.maven.org/maven2/org/jboss/aerogear/aerogear-otp-java/1.0.0/aerogear-otp-java-1.0.0.jar
 
-        # Guava (for Function interface used by ExpectedConditions)
+        # Guava (for ExpectedConditions)
         wget -O lib/guava.jar https://repo1.maven.org/maven2/com/google/guava/guava/32.1.2-jre/guava-32.1.2-jre.jar
+
 
 
 
