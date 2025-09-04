@@ -181,7 +181,7 @@ public class SignInTest {
 
     // Main method *****************
     public static void main(String[] args) {
-        Dotenv dotenv = Dotenv.load();
+        
         String email = getSecret("GOOGLE_EMAIL_VANJA");
         String googlePassword = getSecret("GOOGLE_PASSWORD_VANJA");
         String googleTotPin = getSecret("GOOGLE_TOTPIN_VANJA");
