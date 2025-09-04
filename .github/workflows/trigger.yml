@@ -34,6 +34,6 @@ jobs:
     - name: Compile and run SignInTest
       run: |
         mkdir -p bin
-        javac -d bin -cp ".:$(find . -name '*.jar' | tr '\n' ':')" src/com/spothopper/SignInTest.java
+        javac -d bin -cp ".:$(find . -name '*.jar' | tr '\n' ':')" src/main/java/com/spothopper/SignInTest.java
         xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
           java -cp "bin:$(find . -name '*.jar' | tr '\n' ':')" com.spothopper.SignInTest
