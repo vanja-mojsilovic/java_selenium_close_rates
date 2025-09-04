@@ -31,7 +31,9 @@ jobs:
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
-    - name: Run SignInTest
+    - name: Compile and run SignInTest
       run: |
-        chmod +x gradlew
-        xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' ./gradlew run
+        mkdir -p bin
+        javac -d bin -cp ".:$(find . -name '*.jar' | tr '\n' ':')" src/com/spothopper/SignInTest.java
+        xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
+          java -cp "bin:$(find . -name '*.jar' | tr '\n' ':')" com.spothopper.SignInTest
