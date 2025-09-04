@@ -12,7 +12,7 @@ jobs:
       GOOGLE_PASSWORD_VANJA: ${{ secrets.GOOGLE_PASSWORD_VANJA }}
       GOOGLE_TOTPIN_VANJA: ${{ secrets.GOOGLE_TOTPIN_VANJA }}
       HUBSPOT_TOTPIN_VANJA: ${{ secrets.HUBSPOT_TOTPIN_VANJA }}
-      CI: true  # Used to detect CI environment in your Java code
+      CI: true
 
     steps:
     - name: Checkout code
@@ -31,9 +31,17 @@ jobs:
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
         sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
+    - name: Download dependencies
+      run: |
+        mkdir -p lib
+        wget -O lib/selenium.jar https://repo1.maven.org/maven2/org/seleniumhq/selenium/selenium-java/4.16.1/selenium-java-4.16.1.jar
+        wget -O lib/webdrivermanager.jar https://repo1.maven.org/maven2/io/github/bonigarcia/webdrivermanager/5.6.3/webdrivermanager-5.6.3.jar
+        wget -O lib/dotenv.jar https://repo1.maven.org/maven2/io/github/cdimascio/java-dotenv/5.2.2/java-dotenv-5.2.2.jar
+        wget -O lib/aerogear-otp.jar https://repo1.maven.org/maven2/org/jboss/aerogear/aerogear-otp-java/1.0.0/aerogear-otp-java-1.0.0.jar
+
     - name: Compile and run SignInTest
       run: |
         mkdir -p bin
-        javac -d bin -cp ".:$(find . -name '*.jar' | tr '\n' ':')" src/main/java/com/spothopper/SignInTest.java
+        javac -d bin -cp "lib/*" src/main/java/com/spothopper/SignInTest.java
         xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' \
-          java -cp "bin:$(find . -name '*.jar' | tr '\n' ':')" com.spothopper.SignInTest
+          java -cp "bin:lib/*" com.spothopper.SignInTest
