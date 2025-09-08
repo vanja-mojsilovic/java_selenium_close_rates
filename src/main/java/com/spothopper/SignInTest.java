@@ -9,7 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jboss.aerogear.security.otp.Totp;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -93,9 +94,9 @@ public class SignInTest {
     @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//tr/td[1]")
     List<WebElement> tableWithOwnerNames;
 
-    private static final By OWNER_NAME_CELLS = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[1]");
+    private static final By SALES_REP = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[1]");
 
-    private static final By COMPANY_COUNTS_CELLS = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[2]");
+    private static final By COUNT_OF_COMPANIES = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[2]");
 
     //By rowsPerPageDropDown = By.xpath("//span[contains(text(),'10 rows per page')]");
     @FindBy(xpath = "//span[contains(text(),'10 rows per page')]")
@@ -242,67 +243,119 @@ public class SignInTest {
         element.click();
     }
 
-    public void scrollIntoViewTable(WebDriver driver, String url) {
-        driver.get(url);
-        System.out.println("Navigating to: " + url);
-        sleep(8000);
-        WebElement element = waitForVisibilityOfElement(tableWithOwnersAndCounts, 10);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element);
-        try {
+    public void clickDropDown(){
+        try{
             List<WebElement> dropdownElements = new WebDriverWait(driver, Duration.ofSeconds(10))
                 .until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
                     By.xpath("//span[contains(text(),'10 rows per page')]")
                 ));
             if (!dropdownElements.isEmpty()) {
                 dropdownElements.get(0).click();
+                sleep(1000);
                 WebElement visibleHundredRows = waitForVisibilityOfElement(hundredRowsPerPageDropDown, 10);
+                JavascriptExecutor js = (JavascriptExecutor) driver;
+                js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", hundredRowsPerPageDropDown);
                 visibleHundredRows.click();
             }
+        }catch(Exception e){
+            System.out.println("Dropdown expansion failed: " + e.getMessage());
+        }
+
+
+    }
+
+    public boolean scrollIntoViewTable(WebDriver driver, String url) {
+        boolean result = true;
+        driver.get(url);
+        System.out.println("Navigating to: " + url);
+        sleep(10000);
+        try {
+            WebElement element = waitForVisibilityOfElement(tableWithOwnersAndCounts, 10);
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element);
         } catch (TimeoutException e) {
+            result = false;
             System.out.println("Dropdown for '10 rows per page' not found continuing without expanding rows.");
         } catch (Exception e) {
+            result = false;
             System.out.println("Unexpected error while handling rows-per-page dropdown: " + e.getMessage());
         }
+        return result;
     }
 
-
-
-
-    public void getOwnerNames(List<String> result) {
-        List<WebElement> elements = driver.findElements(OWNER_NAME_CELLS);
-        elements = waitForVisibilityOfElements(elements, 15);
-        if(elements != null){
-            int numOfElements = elements.size();
-            for (int i=0;i<numOfElements;i++) {
-                String name = elements.get(i).getText().trim();
-                result.add(name);
+    public void getData(JSONArray closeRates,String fieldName) {
+        try {
+            List<WebElement> nameElements = driver.findElements(SALES_REP);
+            List<WebElement> countElements = driver.findElements(COUNT_OF_COMPANIES);
+            if (nameElements == null || countElements == null ||
+                nameElements.isEmpty() || countElements.isEmpty()) {
+                System.out.println("No data found — skipping.");
+                return;
             }
-            System.out.println(numOfElements + " names found!");
-        }
-
-    }
-
-    public void getCompanyCounts(List<String> result) {
-        List<WebElement> elements = driver.findElements(COMPANY_COUNTS_CELLS);
-        elements = waitForVisibilityOfElements(elements, 15);
-        if(elements != null){
-            int numOfElements = elements.size();
-            for (int i=0;i<numOfElements;i++) {
-                String name = elements.get(i).getText().trim();
-                result.add(name);
+            nameElements = waitForVisibilityOfElements(nameElements, 15);
+            countElements = waitForVisibilityOfElements(countElements, 15);
+            int size = Math.min(nameElements.size(), countElements.size());
+            int updated = 0, added = 0;
+            for (int i = 0; i < size; i++) {
+                String salesRep = nameElements.get(i).getText().trim();
+                String countOfCompanies = countElements.get(i).getText().trim();
+                boolean found = false;
+                for (int j = 0; j < closeRates.length(); j++) {
+                    JSONObject existing = closeRates.getJSONObject(j);
+                    if (existing.optString("SalesRep").equalsIgnoreCase(salesRep)) {
+                        existing.put(fieldName, countOfCompanies);
+                        updated++;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    JSONObject entry = new JSONObject();
+                    entry.put("SalesRep", salesRep);
+                    entry.put("Pmb", "");
+                    entry.put("Calls", "");
+                    entry.put("BdrMb", "");
+                    entry.put("RepSetNomh", "");
+                    entry.put("BdrNomh", "");
+                    entry.put("BDRSetSales", "");
+                    entry.put("RepSetSales", "");
+                    entry.put(fieldName, countOfCompanies);
+                    closeRates.put(entry);
+                    added++;
+                }
             }
+            System.out.println(size + " entries processed: " + updated + " updated, " + added + " added.");
+        } catch (Exception e) {
+            System.err.println("Error while extracting close rate data: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    public void updateCloseRates(List<String> names, List<String> counts) {
+
+
+
+
+    public void updateCloseRates(JSONArray closeRates, String spreadsheetId) {
+        if (closeRates == null || closeRates.isEmpty()) {
+            System.out.println("No close rate data to append — skipping sheet update.");
+            return;
+        }
         try {
             Sheets sheetsService = getSheetsService();
-            String spreadsheetId = "1Pxgp3zUZ6khudOVD--5aI3oFd8NQzmkqigCj1ZlScfY";
             String range = "pmb!A1"; // Appends below existing data
             List<List<Object>> rows = new ArrayList<>();
-            for (int i = 0; i < names.size(); i++) {
-                rows.add(Arrays.asList(names.get(i), counts.get(i)));
+            for (int i = 0; i < closeRates.length(); i++) {
+                JSONObject entry = closeRates.getJSONObject(i);
+                rows.add(Arrays.asList(
+                    entry.optString("SalesRep", ""),
+                    entry.optString("Pmb", ""),
+                    entry.optString("Calls", ""),
+                    entry.optString("BdrMb", ""),
+                    entry.optString("RepSetNomh", ""),
+                    entry.optString("BdrNomh", ""),
+                    entry.optString("BDRSetSales", ""),
+                    entry.optString("RepSetSales", "")
+                ));
             }
             ValueRange body = new ValueRange().setValues(rows);
             AppendValuesResponse response = sheetsService.spreadsheets().values()
@@ -317,6 +370,7 @@ public class SignInTest {
             e.printStackTrace();
         }
     }
+
 
     private static Sheets getSheetsService() throws IOException, GeneralSecurityException {
         Dotenv dotenv = Dotenv.load();
@@ -337,129 +391,127 @@ public class SignInTest {
 
     // Main method *****************
     public static void main(String[] args) {
-        
         String email = getSecret("GOOGLE_EMAIL_VANJA");
         String googlePassword = getSecret("GOOGLE_PASSWORD_VANJA");
         String googleTotPin = getSecret("GOOGLE_TOTPIN_VANJA");
         String hubspotTotPin = getSecret("HUBSPOT_TOTPIN_VANJA");
-        String pmbBySalesReps = "https://app.hubspot.com/reports-dashboard/587184/view/";
-        String pmbBySalesRepsLaurenBryan = pmbBySalesReps + "15295898/132144905";
-        String pmbBySalesRepsDanielWyss = pmbBySalesReps + "12820555/113078679";
-        String pmbBySalesRepsJillianKelly = pmbBySalesReps + "12821140/113082895";
-        String pmbBySalesRepsKellyONeill = pmbBySalesReps + "11931736/109173589";
-        String pmbBySalesRepsThomasBarrow = pmbBySalesReps + "12821612/113086364";
-        String pmbBySalesRepsHarrisonMuller = pmbBySalesReps + "12829866/113147378";
-        String pmbBySalesRepsUmutEngin = pmbBySalesReps + "12829954/113148099";
-        String pmbBySalesRepsTylerBottenhagen = pmbBySalesReps + "12830325/113150823";
-        String pmbBySalesRepsTristanMeyerInside = pmbBySalesReps + "16817768/144354606";
-        String pmbBySalesRepsTristanMeyerOutside = pmbBySalesReps + "15008070/129970525";
-        String pmbBySalesRepsNatalieTowne = pmbBySalesReps + "13916712/120523319";
-        String pmbBySalesRepsGraceYeager = pmbBySalesReps + "12822090/113090236";
+        String spreadsheetId = "1Pxgp3zUZ6khudOVD--5aI3oFd8NQzmkqigCj1ZlScfY";
+
+        List<String> pmbReportUrlsThisMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15295898/132144905",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820555/113078679",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821140/113082895",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931736/109173589",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821612/113086364",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12829866/113147378",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12829954/113148099",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830325/113150823",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817768/144354606",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008070/129970525",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916712/120523319",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822090/113090236"
+        );
+
+        List<String> pmbReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148069",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080121",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085819",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109173462",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088373",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148524",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149066",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151980",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354630",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971621",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524801",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092772"
+        );
+
+        List<String> callsReportUrlsThisMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15295898/134269782"
+            // add later
+        );
+
+        List<String> callsReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148075",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/128527614",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/128528016",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/128526818",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088373",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/128530561",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/128531073",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/128531381",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354636",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971627",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/128532303",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/128530012"
+        );
+
+        JSONArray closeRates = new JSONArray();
+
+        WebDriver driver = null;
+        try {
+            WebDriverManager.chromedriver().setup();
+            driver = createWebDriver();
+            driver.get("https://app.hubspot.com");
+            sleep(2000);
+
+            SignInTest signInTest = new SignInTest(driver);
+            signInTest.enterEmail(email);
+            signInTest.clickNextButton();
+            sleep(2000);
+            signInTest.clickSignInWithGoogletButton();
+            signInTest.enterEmailInIdentifier(email);
+            signInTest.clickNextIdentifierButton();
+            sleep(2000);
+            signInTest.enterGooglePassword(googlePassword);
+            signInTest.clickNextGooglePasswordButton();
+            sleep(2000);
+            signInTest.enterGoogleTotPin(new Totp(googleTotPin).now());
+            signInTest.clickGoogleTotPinNextButton();
+            sleep(2000);
+            signInTest.enterHubspotTotPin(new Totp(hubspotTotPin).now());
+            signInTest.clickHubspotTotPinLoginButton();
+            sleep(2000);
+            signInTest.clickRememberMeFalseButton();
+            sleep(4000);
+            driver.get("https://app.hubspot.com");
+            signInTest.clickHubspotAccountElement();
+            sleep(2000);
+
+            // Calls
+            for (String url : callsReportUrlsLastMonth) {
+                boolean hasTable = signInTest.scrollIntoViewTable(driver, url);
+                sleep(2000);
+                if (hasTable) {
+                    signInTest.clickDropDown();
+                    sleep(1000);
+                    signInTest.getData(closeRates,"Calls");
+                }
+            }
+
+            // PMB
+            for (String url : pmbReportUrlsLastMonth) {
+                boolean hasTable = signInTest.scrollIntoViewTable(driver, url);
+                sleep(2000);
+                if (hasTable) {
+                    signInTest.clickDropDown();
+                    sleep(1000);
+                    signInTest.getData(closeRates,"Pmb");
+                }
+            }
 
 
 
 
 
-        WebDriverManager.chromedriver().setup();
-        WebDriver driver = createWebDriver();
-        driver.get("https://app.hubspot.com");
-        sleep(2000);
-        SignInTest signInTest = new SignInTest(driver);
-        signInTest.enterEmail(email);
-        signInTest.clickNextButton();
-        sleep(2000);
-        signInTest.clickSignInWithGoogletButton();
-        signInTest.enterEmailInIdentifier(email);
-        signInTest.clickNextIdentifierButton();
-        sleep(2000);
-        signInTest.enterGooglePassword(googlePassword);
-        signInTest.clickNextGooglePasswordButton();
-        sleep(2000);
-        Totp totpGoogle = new Totp(googleTotPin);
-        String googleAuthCode = totpGoogle.now();
-        signInTest.enterGoogleTotPin(googleAuthCode);
-        signInTest.clickGoogleTotPinNextButton();
-        sleep(2000);
-        Totp totpHubspot = new Totp(hubspotTotPin);
-        String hubspotAuthCode = totpHubspot.now();
-        signInTest.enterHubspotTotPin(hubspotAuthCode);
-        signInTest.clickHubspotTotPinLoginButton();
-        sleep(2000);
-        signInTest.clickRememberMeFalseButton();
-        sleep(4000);
-        driver.get("https://app.hubspot.com");
-        signInTest.clickHubspotAccountElement();
-        sleep(2000);
-        List<String> ownersNames = new ArrayList<>();
-        List<String> companyCounts = new ArrayList<>();
+            signInTest.updateCloseRates(closeRates, spreadsheetId);
 
-        // Lauren Bryan
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsLaurenBryan);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Daniel Wyss
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsDanielWyss);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Jillian Kelly
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsJillianKelly);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Kelly O'Neill
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsKellyONeill);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Thomas Barrow
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsThomasBarrow);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Harrison Muller
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsHarrisonMuller);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Umut Engin
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsUmutEngin);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Tyler Bottenhagen
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsTylerBottenhagen);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Tristan Meyer Inside
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsTristanMeyerInside);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Tristan Meyer Outside
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsTristanMeyerOutside);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Natalie Towne
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsNatalieTowne);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-        // Grace Yeager
-        signInTest.scrollIntoViewTable(driver,pmbBySalesRepsGraceYeager);
-        sleep(1000);
-        signInTest.getOwnerNames(ownersNames);
-        signInTest.getCompanyCounts(companyCounts);
-
-            // error zero names update on every step
-
-        // Appending data in Google sheets document
-        signInTest.updateCloseRates(ownersNames,companyCounts);
-
-
-        driver.quit(); 
+        } finally {
+            if (driver != null) {
+                driver.quit();
+            }
+        }
     }
+
 }
