@@ -29,19 +29,21 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.TimeoutException;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import io.github.cdimascio.dotenv.Dotenv;
+import java.util.LinkedHashMap;
+
 
 // Google Sheets API imports
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.google.api.services.sheets.v4.model.AppendValuesResponse;
-
+import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.http.HttpCredentialsAdapter;
-
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
+
 
 
 public class SignInTest {
@@ -107,6 +109,14 @@ public class SignInTest {
 
     @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//tr/td[2]")
     List<WebElement> tableWithCompanyCounts;
+
+    @FindBy(xpath = "//div[@data-test-id = 'srv-report-name']")
+    WebElement reportNameLocator;
+
+
+
+
+
 
 
     // Constructor *********************
@@ -255,6 +265,7 @@ public class SignInTest {
                 WebElement visibleHundredRows = waitForVisibilityOfElement(hundredRowsPerPageDropDown, 10);
                 JavascriptExecutor js = (JavascriptExecutor) driver;
                 js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", hundredRowsPerPageDropDown);
+                sleep(1000);
                 visibleHundredRows.click();
             }
         }catch(Exception e){
@@ -283,66 +294,135 @@ public class SignInTest {
         return result;
     }
 
-    public void getData(JSONArray closeRates,String fieldName) {
+    public void getSource(JSONArray sourceReports, String fieldName) {
+        try {
+            List<WebElement> nameElements = driver.findElements(SALES_REP);
+            WebElement reportNameElement = waitForVisibilityOfElement(reportNameLocator, 15);
+            String reportName = reportNameElement.getText();
+
+            nameElements = waitForVisibilityOfElements(nameElements, 15);
+
+            if (nameElements == null || nameElements.isEmpty()) {
+                System.out.println("No sales rep data found — skipping.");
+                return;
+            }
+
+            int updated = 0, added = 0;
+            for (WebElement nameElement : nameElements) {
+                String salesRep = nameElement.getText().trim();
+                boolean found = false;
+
+                for (int j = 0; j < sourceReports.length(); j++) {
+                    JSONObject existing = sourceReports.getJSONObject(j);
+                    if (existing.optString("SalesRep").equalsIgnoreCase(salesRep)) {
+                        existing.put(fieldName, reportName);
+                        updated++;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    JSONObject newEntry = new JSONObject();
+                    newEntry.put("SalesRep", salesRep);
+                    newEntry.put("Pmb", "");
+                    newEntry.put("Calls", "");
+                    newEntry.put("BdrMb", "");
+                    newEntry.put("RepSetNomh", "");
+                    newEntry.put("BdrNomh", "");
+                    newEntry.put("BdrSetSales", "");
+                    newEntry.put("RepSetSales", "");
+                    newEntry.put(fieldName, reportName);
+                    sourceReports.put(newEntry);
+                    added++;
+                }
+            }
+
+            System.out.println(nameElements.size() + " reps processed: " +
+                               updated + " updated, " + added + " added.");
+        } catch (Exception e) {
+            System.err.println("Error while extracting source report data: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    public void getData(JSONArray closeRates, String fieldName) {
         try {
             List<WebElement> nameElements = driver.findElements(SALES_REP);
             List<WebElement> countElements = driver.findElements(COUNT_OF_COMPANIES);
+            WebElement reportNameElement = waitForVisibilityOfElement(reportNameLocator, 15);
+            String reportName = reportNameElement.getText();
+            int startIndex = 0;
+            int endIndex = reportName.indexOf("-");
+            String team = reportName.substring(startIndex, endIndex).trim();
             if (nameElements == null || countElements == null ||
                 nameElements.isEmpty() || countElements.isEmpty()) {
                 System.out.println("No data found — skipping.");
                 return;
             }
+
             nameElements = waitForVisibilityOfElements(nameElements, 15);
             countElements = waitForVisibilityOfElements(countElements, 15);
+
             int size = Math.min(nameElements.size(), countElements.size());
-            int updated = 0, added = 0;
+
+            // Step 1: Aggregate counts by SalesRep
+            Map<String, Integer> aggregatedCounts = new LinkedHashMap<>();
             for (int i = 0; i < size; i++) {
                 String salesRep = nameElements.get(i).getText().trim();
-                String countOfCompanies = countElements.get(i).getText().trim();
+                String countText = countElements.get(i).getText().trim();
+                int count = countText.isEmpty() ? 0 : Integer.parseInt(countText);
+                aggregatedCounts.merge(salesRep, count, Integer::sum);
+            }
+            // Step 2: Insert into closeRates
+            int updated = 0, added = 0;
+            for (Map.Entry<String, Integer> entry : aggregatedCounts.entrySet()) {
+                String salesRep = entry.getKey();
+                int totalCount = entry.getValue();
                 boolean found = false;
                 for (int j = 0; j < closeRates.length(); j++) {
                     JSONObject existing = closeRates.getJSONObject(j);
                     if (existing.optString("SalesRep").equalsIgnoreCase(salesRep)) {
-                        existing.put(fieldName, countOfCompanies);
+                        existing.put(fieldName, totalCount);
                         updated++;
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-                    JSONObject entry = new JSONObject();
-                    entry.put("SalesRep", salesRep);
-                    entry.put("Pmb", "");
-                    entry.put("Calls", "");
-                    entry.put("BdrMb", "");
-                    entry.put("RepSetNomh", "");
-                    entry.put("BdrNomh", "");
-                    entry.put("BDRSetSales", "");
-                    entry.put("RepSetSales", "");
-                    entry.put(fieldName, countOfCompanies);
-                    closeRates.put(entry);
+                    JSONObject newEntry = new JSONObject();
+                    newEntry.put("SalesRep", salesRep);
+                    newEntry.put("Pmb", "");
+                    newEntry.put("Calls", "");
+                    newEntry.put("BdrMb", "");
+                    newEntry.put("RepSetNomh", "");
+                    newEntry.put("BdrNomh", "");
+                    newEntry.put("BdrSetSales", "");
+                    newEntry.put("RepSetSales", "");
+                    newEntry.put("Team",team);
+                    newEntry.put(fieldName, totalCount);
+                    closeRates.put(newEntry);
                     added++;
                 }
             }
-            System.out.println(size + " entries processed: " + updated + " updated, " + added + " added.");
+            System.out.println(aggregatedCounts.size() + " unique reps processed: " +
+                               updated + " updated, " + added + " added.");
         } catch (Exception e) {
             System.err.println("Error while extracting close rate data: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-
-
-
-
-    public void updateCloseRates(JSONArray closeRates, String spreadsheetId) {
+    public void updateCloseRates(JSONArray closeRates,JSONArray sourceReports, String spreadsheetId) {
         if (closeRates == null || closeRates.isEmpty()) {
-            System.out.println("No close rate data to append — skipping sheet update.");
+            System.out.println("No close rate data to update — skipping sheet update.");
             return;
         }
         try {
+            // Close rates
+            String rangeForCounts = "last_month!A2";
             Sheets sheetsService = getSheetsService();
-            String range = "pmb!A1"; // Appends below existing data
             List<List<Object>> rows = new ArrayList<>();
             for (int i = 0; i < closeRates.length(); i++) {
                 JSONObject entry = closeRates.getJSONObject(i);
@@ -353,23 +433,52 @@ public class SignInTest {
                     entry.optString("BdrMb", ""),
                     entry.optString("RepSetNomh", ""),
                     entry.optString("BdrNomh", ""),
-                    entry.optString("BDRSetSales", ""),
-                    entry.optString("RepSetSales", "")
+                    entry.optString("BdrSetSales", ""),
+                    entry.optString("RepSetSales", ""),
+                    entry.optString("Team", "")
                 ));
             }
             ValueRange body = new ValueRange().setValues(rows);
-            AppendValuesResponse response = sheetsService.spreadsheets().values()
-                .append(spreadsheetId, range, body)
+            UpdateValuesResponse response = sheetsService.spreadsheets().values()
+                .update(spreadsheetId, rangeForCounts, body)
                 .setValueInputOption("RAW")
-                .setInsertDataOption("INSERT_ROWS")
-                .setIncludeValuesInResponse(true)
                 .execute();
-            System.out.println("Appended " + response.getUpdates().getUpdatedRows() + " rows to 'pmb' sheet.");
+            System.out.println("Updated range: " + response.getUpdatedRange());
+            System.out.println("Replaced " + rows.size() + " rows in 'close_rates_result' sheet.");
+
+            // Source reports
+            String rangeForSources = "sources!A2";
+            Sheets sourceSheetsService = getSheetsService();
+            List<List<Object>> sourceRows = new ArrayList<>();
+            for (int i = 0; i < sourceReports.length(); i++) {
+                JSONObject entry = sourceReports.getJSONObject(i);
+                sourceRows.add(Arrays.asList(
+                    entry.optString("SalesRep", ""),
+                    entry.optString("Pmb", ""),
+                    entry.optString("Calls", ""),
+                    entry.optString("BdrMb", ""),
+                    entry.optString("RepSetNomh", ""),
+                    entry.optString("BdrNomh", ""),
+                    entry.optString("BdrSetSales", ""),
+                    entry.optString("RepSetSales", "")
+
+                ));
+            }
+            ValueRange sourceBody = new ValueRange().setValues(sourceRows);
+            UpdateValuesResponse SourceResponse = sourceSheetsService.spreadsheets().values()
+                .update(spreadsheetId, rangeForSources, sourceBody)
+                .setValueInputOption("RAW")
+                .execute();
+            System.out.println("Updated range: " + SourceResponse.getUpdatedRange());
+            System.out.println("Replaced " + sourceRows.size() + " rows in 'close_rates_result' sheet.");
+
+
         } catch (IOException | GeneralSecurityException e) {
             System.err.println("Failed to update Google Sheet: " + e.getMessage());
             e.printStackTrace();
         }
     }
+
 
 
     private static Sheets getSheetsService() throws IOException, GeneralSecurityException {
@@ -383,6 +492,24 @@ public class SignInTest {
             .build();
     }
 
+    public void processReportList(List<String> reportUrls,
+                                    String reportType,
+                                    WebDriver driver,
+                                    JSONArray closeRates,
+                                    JSONArray sourceReports,
+                                    String spreadsheetId) {
+        for (String url : reportUrls) {
+            boolean hasTable = scrollIntoViewTable(driver, url);
+            sleep(2000);
+            if (hasTable) {
+                clickDropDown();
+                sleep(1000);
+                getData(closeRates,reportType);
+                getSource(sourceReports,reportType);
+            }
+            updateCloseRates(closeRates,sourceReports,spreadsheetId);
+        }
+    }
 
 
 
@@ -437,7 +564,7 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12820743/128527614",
             "https://app.hubspot.com/reports-dashboard/587184/view/12821545/128528016",
             "https://app.hubspot.com/reports-dashboard/587184/view/11931971/128526818",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088373",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/128529603", //
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/128530561",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/128531073",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830518/128531381",
@@ -447,7 +574,88 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12822410/128530012"
         );
 
+        List<String> BdrMbReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148071",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080123",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085821",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109313705",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088375",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148526",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149068",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151982",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354632",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971623",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524803",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092774"
+        );
+
+        List<String> RepSetNomhReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148070",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080122",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085820",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109174100",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088374",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148525",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149067",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151981",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354631",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971622",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524802",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092773"
+        );
+
+        List<String> BdrNomhReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148072",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080124",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085822",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109314151",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088376",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148527",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149069",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151983",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354633",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971624",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524804",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092775"
+        );
+
+        List<String> BdrSetSalesReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/147246052",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/147255130",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/147255435",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/147144069",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/147271739",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/147274767",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/147275351",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/147276133",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/147278340",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/147277385",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/147277063",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/147274236"
+
+        );
+
+        List<String> RepSetSalesReportUrlsLastMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/147246035",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/147255096",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/147255432",
+            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/147144021",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/147271727",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/147274760",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/147275278",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/147276102",
+            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/147278332",
+            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/147277362",
+            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/147277060",
+            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/147274233"
+        );
+
+
+
+        //
+
         JSONArray closeRates = new JSONArray();
+        JSONArray sourceReports = new JSONArray();
 
         WebDriver driver = null;
         try {
@@ -479,33 +687,13 @@ public class SignInTest {
             signInTest.clickHubspotAccountElement();
             sleep(2000);
 
-            // Calls
-            for (String url : callsReportUrlsLastMonth) {
-                boolean hasTable = signInTest.scrollIntoViewTable(driver, url);
-                sleep(2000);
-                if (hasTable) {
-                    signInTest.clickDropDown();
-                    sleep(1000);
-                    signInTest.getData(closeRates,"Calls");
-                }
-            }
-
-            // PMB
-            for (String url : pmbReportUrlsLastMonth) {
-                boolean hasTable = signInTest.scrollIntoViewTable(driver, url);
-                sleep(2000);
-                if (hasTable) {
-                    signInTest.clickDropDown();
-                    sleep(1000);
-                    signInTest.getData(closeRates,"Pmb");
-                }
-            }
-
-
-
-
-
-            signInTest.updateCloseRates(closeRates, spreadsheetId);
+            signInTest.processReportList(pmbReportUrlsLastMonth,"Pmb",driver,closeRates,sourceReports,spreadsheetId);
+            signInTest.processReportList(callsReportUrlsLastMonth,"Calls",driver,closeRates,sourceReports,spreadsheetId);
+            signInTest.processReportList(BdrMbReportUrlsLastMonth,"BdrMb",driver,closeRates,sourceReports,spreadsheetId);
+            signInTest.processReportList(RepSetNomhReportUrlsLastMonth,"RepSetNomh",driver,closeRates,sourceReports,spreadsheetId);
+            signInTest.processReportList(BdrNomhReportUrlsLastMonth,"BdrNomh",driver,closeRates,sourceReports,spreadsheetId);
+            signInTest.processReportList(BdrSetSalesReportUrlsLastMonth,"BdrSetSales",driver,closeRates,sourceReports,spreadsheetId);
+            signInTest.processReportList(RepSetSalesReportUrlsLastMonth,"RepSetSales",driver,closeRates,sourceReports,spreadsheetId);
 
         } finally {
             if (driver != null) {
