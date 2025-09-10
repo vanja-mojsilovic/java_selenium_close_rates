@@ -7,6 +7,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
 import org.json.JSONArray;
@@ -29,7 +32,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.TimeoutException;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import io.github.cdimascio.dotenv.Dotenv;
-import java.util.LinkedHashMap;
+
 
 
 // Google Sheets API imports
@@ -93,6 +96,9 @@ public class SignInTest {
     @FindBy(xpath = "//div[@data-test-id='report-loaded']//table")
     WebElement tableWithOwnersAndCounts;
 
+    @FindBy(xpath = "//p[text()='Report Total']")
+    WebElement reportTotal;
+
     @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//tr/td[1]")
     List<WebElement> tableWithOwnerNames;
 
@@ -100,7 +106,6 @@ public class SignInTest {
 
     private static final By COUNT_OF_COMPANIES = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[2]");
 
-    //By rowsPerPageDropDown = By.xpath("//span[contains(text(),'10 rows per page')]");
     @FindBy(xpath = "//span[contains(text(),'10 rows per page')]")
     List<WebElement> tenRowsPerPageDropDown;
 
@@ -113,8 +118,17 @@ public class SignInTest {
     @FindBy(xpath = "//div[@data-test-id = 'srv-report-name']")
     WebElement reportNameLocator;
 
+    @FindBy(xpath = "(//*[local-name()='g' and contains(@class,'highcharts-xaxis-labels')])[1]/*[local-name()='text']")
+    private List<WebElement> xAxisLabels;
 
+    @FindBy(xpath = "(//*[local-name()='g' and contains(@class,'highcharts-label highcharts-stack-labels')])[1]/*[local-name()='text']")
+    private List<WebElement> yAxisLabels;
 
+    @FindBy(xpath = "//button[@data-page-number = '1']")
+    WebElement navigateToFirstPageLocator;
+
+    @FindBy(xpath = "//button[@data-page-number = '2']")
+    WebElement navigateToSecondPageLocator;
 
 
 
@@ -255,7 +269,7 @@ public class SignInTest {
 
     public void clickDropDown(){
         try{
-            List<WebElement> dropdownElements = new WebDriverWait(driver, Duration.ofSeconds(10))
+            List<WebElement> dropdownElements = new WebDriverWait(driver, Duration.ofSeconds(15))
                 .until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
                     By.xpath("//span[contains(text(),'10 rows per page')]")
                 ));
@@ -279,9 +293,9 @@ public class SignInTest {
         boolean result = true;
         driver.get(url);
         System.out.println("Navigating to: " + url);
-        sleep(10000);
+        sleep(8000);
         try {
-            WebElement element = waitForVisibilityOfElement(tableWithOwnersAndCounts, 10);
+            WebElement element = waitForVisibilityOfElement(reportTotal, 60);
             JavascriptExecutor js = (JavascriptExecutor) driver;
             js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element);
         } catch (TimeoutException e) {
@@ -296,22 +310,44 @@ public class SignInTest {
 
     public void getSource(JSONArray sourceReports, String fieldName) {
         try {
-            List<WebElement> nameElements = driver.findElements(SALES_REP);
             WebElement reportNameElement = waitForVisibilityOfElement(reportNameLocator, 15);
             String reportName = reportNameElement.getText();
 
-            nameElements = waitForVisibilityOfElements(nameElements, 15);
+            Set<String> allSalesReps = new LinkedHashSet<>();
 
+            // Step 1: Scrape first page
+            List<WebElement> nameElements = waitForVisibilityOfElements(driver.findElements(SALES_REP), 15);
             if (nameElements == null || nameElements.isEmpty()) {
-                System.out.println("No sales rep data found — skipping.");
+                System.out.println("No sales rep data found on first page — skipping.");
                 return;
             }
-
-            int updated = 0, added = 0;
             for (WebElement nameElement : nameElements) {
-                String salesRep = nameElement.getText().trim();
-                boolean found = false;
+                allSalesReps.add(nameElement.getText().trim());
+            }
 
+            // Step 2: Try navigating to second page
+            try {
+                WebElement firstPageButton = waitForVisibilityOfElement(navigateToFirstPageLocator, 15);
+                JavascriptExecutor js = (JavascriptExecutor) driver;
+                js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", firstPageButton);
+                WebElement nextPageButton = waitForVisibilityOfElement(navigateToSecondPageLocator, 5);
+                if (nextPageButton != null && nextPageButton.isDisplayed()) {
+                    nextPageButton.click();
+                    Thread.sleep(1500); // Wait for second page to load
+
+                    List<WebElement> secondPageElements = waitForVisibilityOfElements(driver.findElements(SALES_REP), 15);
+                    for (WebElement nameElement : secondPageElements) {
+                        allSalesReps.add(nameElement.getText().trim());
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Second page not found or not clickable — continuing with first page only.");
+            }
+
+            // Step 3: Enrich sourceReports
+            int updated = 0, added = 0;
+            for (String salesRep : allSalesReps) {
+                boolean found = false;
                 for (int j = 0; j < sourceReports.length(); j++) {
                     JSONObject existing = sourceReports.getJSONObject(j);
                     if (existing.optString("SalesRep").equalsIgnoreCase(salesRep)) {
@@ -338,7 +374,7 @@ public class SignInTest {
                 }
             }
 
-            System.out.println(nameElements.size() + " reps processed: " +
+            System.out.println(allSalesReps.size() + " report names processed: " +
                                updated + " updated, " + added + " added.");
         } catch (Exception e) {
             System.err.println("Error while extracting source report data: " + e.getMessage());
@@ -347,34 +383,36 @@ public class SignInTest {
     }
 
 
+
     public void getData(JSONArray closeRates, String fieldName) {
-        try {
-            List<WebElement> nameElements = driver.findElements(SALES_REP);
-            List<WebElement> countElements = driver.findElements(COUNT_OF_COMPANIES);
+        //try {
             WebElement reportNameElement = waitForVisibilityOfElement(reportNameLocator, 15);
             String reportName = reportNameElement.getText();
             int startIndex = 0;
             int endIndex = reportName.indexOf("-");
             String team = reportName.substring(startIndex, endIndex).trim();
-            if (nameElements == null || countElements == null ||
-                nameElements.isEmpty() || countElements.isEmpty()) {
-                System.out.println("No data found — skipping.");
-                return;
-            }
 
-            nameElements = waitForVisibilityOfElements(nameElements, 15);
-            countElements = waitForVisibilityOfElements(countElements, 15);
-
-            int size = Math.min(nameElements.size(), countElements.size());
-
-            // Step 1: Aggregate counts by SalesRep
             Map<String, Integer> aggregatedCounts = new LinkedHashMap<>();
-            for (int i = 0; i < size; i++) {
-                String salesRep = nameElements.get(i).getText().trim();
-                String countText = countElements.get(i).getText().trim();
-                int count = countText.isEmpty() ? 0 : Integer.parseInt(countText);
-                aggregatedCounts.merge(salesRep, count, Integer::sum);
+
+            // Fetch data from first page
+            aggregatePageData(aggregatedCounts);
+
+            // Try navigating to second page
+            try {
+                WebElement firstPageButton = waitForVisibilityOfElement(navigateToFirstPageLocator, 15);
+                JavascriptExecutor js = (JavascriptExecutor) driver;
+                js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", firstPageButton);
+                WebElement nextPageButton = waitForVisibilityOfElement(navigateToSecondPageLocator, 5);
+                if (nextPageButton != null && nextPageButton.isDisplayed()) {
+                    nextPageButton.click();
+                    System.out.println("Next Page Button Clicked!");
+                    Thread.sleep(1500);
+                    aggregatePageData(aggregatedCounts);
+                }
+            } catch (Exception e) {
+                System.out.println("Second page not found or not clickable — continuing with first page only.");
             }
+
             // Step 2: Insert into closeRates
             int updated = 0, added = 0;
             for (Map.Entry<String, Integer> entry : aggregatedCounts.entrySet()) {
@@ -400,7 +438,7 @@ public class SignInTest {
                     newEntry.put("BdrNomh", "");
                     newEntry.put("BdrSetSales", "");
                     newEntry.put("RepSetSales", "");
-                    newEntry.put("Team",team);
+                    newEntry.put("Team", team);
                     newEntry.put(fieldName, totalCount);
                     closeRates.put(newEntry);
                     added++;
@@ -408,11 +446,34 @@ public class SignInTest {
             }
             System.out.println(aggregatedCounts.size() + " unique reps processed: " +
                                updated + " updated, " + added + " added.");
+        /*
         } catch (Exception e) {
             System.err.println("Error while extracting close rate data: " + e.getMessage());
             e.printStackTrace();
         }
+        */
     }
+
+
+    private void aggregatePageData(Map<String, Integer> aggregatedCounts) {
+        List<WebElement> nameElements = waitForVisibilityOfElements(driver.findElements(SALES_REP), 15);
+        List<WebElement> countElements = waitForVisibilityOfElements(driver.findElements(COUNT_OF_COMPANIES), 15);
+
+        if (nameElements == null || countElements == null ||
+            nameElements.isEmpty() || countElements.isEmpty()) {
+            System.out.println("No data found on this page — skipping.");
+            return;
+        }
+
+        int size = Math.min(nameElements.size(), countElements.size());
+        for (int i = 0; i < size; i++) {
+            String salesRep = nameElements.get(i).getText().trim();
+            String countText = countElements.get(i).getText().trim();
+            int count = countText.isEmpty() ? 0 : Integer.parseInt(countText);
+            aggregatedCounts.merge(salesRep, count, Integer::sum);
+        }
+    }
+
 
     public void updateCloseRates(JSONArray closeRates,JSONArray sourceReports, String spreadsheetId) {
         if (closeRates == null || closeRates.isEmpty()) {
@@ -445,7 +506,7 @@ public class SignInTest {
                 .execute();
             System.out.println("Updated range: " + response.getUpdatedRange());
             System.out.println("Replaced " + rows.size() + " rows in 'close_rates_result' sheet.");
-
+            /*
             // Source reports
             String rangeForSources = "sources!A2";
             Sheets sourceSheetsService = getSheetsService();
@@ -471,7 +532,7 @@ public class SignInTest {
                 .execute();
             System.out.println("Updated range: " + SourceResponse.getUpdatedRange());
             System.out.println("Replaced " + sourceRows.size() + " rows in 'close_rates_result' sheet.");
-
+            */
 
         } catch (IOException | GeneralSecurityException e) {
             System.err.println("Failed to update Google Sheet: " + e.getMessage());
@@ -505,7 +566,7 @@ public class SignInTest {
                 clickDropDown();
                 sleep(1000);
                 getData(closeRates,reportType);
-                getSource(sourceReports,reportType);
+                //getSource(sourceReports,reportType);
             }
             updateCloseRates(closeRates,sourceReports,spreadsheetId);
         }
@@ -539,6 +600,11 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12822090/113090236"
         );
 
+        List<String> callsReportUrlsThisMonth = List.of(
+            "https://app.hubspot.com/reports-dashboard/587184/view/15295898/134269782"
+            // add later
+        );
+
         List<String> pmbReportUrlsLastMonth = List.of(
             "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148069",
             "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080121",
@@ -547,31 +613,31 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088373",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148524",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149066",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151980",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354630",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971621",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524801",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092772"
+
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762742",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766513"
         );
 
-        List<String> callsReportUrlsThisMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15295898/134269782"
-            // add later
-        );
+
 
         List<String> callsReportUrlsLastMonth = List.of(
             "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148075",
             "https://app.hubspot.com/reports-dashboard/587184/view/12820743/128527614",
             "https://app.hubspot.com/reports-dashboard/587184/view/12821545/128528016",
             "https://app.hubspot.com/reports-dashboard/587184/view/11931971/128526818",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/128529603", //
+            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/128529603",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/128530561",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/128531073",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/128531381",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354636",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971627",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/128532303",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/128530012"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762748",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766519"
         );
 
         List<String> BdrMbReportUrlsLastMonth = List.of(
@@ -582,11 +648,12 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088375",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148526",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149068",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151982",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354632",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971623",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524803",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092774"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762744",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766515"
         );
 
         List<String> RepSetNomhReportUrlsLastMonth = List.of(
@@ -597,11 +664,13 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088374",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148525",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149067",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151981",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354631",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971622",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524802",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092773"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762743",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766514"
+
         );
 
         List<String> BdrNomhReportUrlsLastMonth = List.of(
@@ -612,11 +681,13 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088376",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148527",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149069",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/113151983",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354633",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971624",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524804",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092775"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762745",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766516"
+
         );
 
         List<String> BdrSetSalesReportUrlsLastMonth = List.of(
@@ -627,11 +698,13 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12821874/147271739",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/147274767",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/147275351",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/147276133",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/147278340",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/147277385",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/147277063",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/147274236"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762741",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766512"
+
 
         );
 
@@ -643,11 +716,13 @@ public class SignInTest {
             "https://app.hubspot.com/reports-dashboard/587184/view/12821874/147271727",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830013/147274760",
             "https://app.hubspot.com/reports-dashboard/587184/view/12830092/147275278",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830518/147276102",
+
             "https://app.hubspot.com/reports-dashboard/587184/view/16817770/147278332",
             "https://app.hubspot.com/reports-dashboard/587184/view/15008226/147277362",
             "https://app.hubspot.com/reports-dashboard/587184/view/13916924/147277060",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/147274233"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762740",
+            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766511"
+
         );
 
 
