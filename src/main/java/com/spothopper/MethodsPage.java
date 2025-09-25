@@ -1,45 +1,21 @@
 package com.spothopper;
 
-// Java I/O and utility imports
-import java.io.File;
-import java.io.FileReader;
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-import java.io.FileInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Arrays;
-import java.util.ArrayList;
+// Java I/O and utility
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.security.GeneralSecurityException;
 
-// JSON handling
+// JSON
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-// Web scraping
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
 // Selenium WebDriver
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.remote.RemoteWebDriver;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.TimeoutException;
 
 // WebDriver manager and environment variables
 import io.github.bonigarcia.wdm.WebDriverManager;
@@ -55,6 +31,11 @@ import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
+
+// OTP for 2FA
+import org.jboss.aerogear.security.otp.Totp;
+
+
 
 // OTP for 2FA
 import org.jboss.aerogear.security.otp.Totp;
@@ -110,17 +91,32 @@ public class MethodsPage extends AbstractClass {
 
     // important
     private Sheets getSheetsService() throws IOException, GeneralSecurityException {
-        String credentialsPath = getSecret("GOOGLE_CREDENTIALS_PATH");
-        if (credentialsPath == null || credentialsPath.isEmpty()) {
-            credentialsPath = "credentials.json";
+        GoogleCredentials credentials;
+
+        // Try environment-based injection first (CI mode)
+        String rawJson = getSecret("GOOGLE_CREDENTIALS_JSON");
+
+        if (rawJson != null && !rawJson.isEmpty()) {
+            InputStream stream = new ByteArrayInputStream(rawJson.getBytes(StandardCharsets.UTF_8));
+            credentials = GoogleCredentials.fromStream(stream);
+        } else {
+            // Fallback to file-based credentials (local mode)
+            String credentialsPath = getSecret("GOOGLE_CREDENTIALS_PATH");
+            if (credentialsPath == null || credentialsPath.isEmpty()) {
+                credentialsPath = "credentials.json";
+            }
+
+            File credentialsFile = new File(credentialsPath);
+            if (!credentialsFile.exists()) {
+                throw new IOException("Missing credentials file at: " + credentialsPath);
+            }
+
+            credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile));
         }
-        File credentialsFile = new File(credentialsPath);
-        if (!credentialsFile.exists()) {
-            throw new IOException("Missing credentials file at: " + credentialsPath);
-        }
-        GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile))
-                .createScoped(List.of(SheetsScopes.SPREADSHEETS));
+
+        credentials = credentials.createScoped(List.of(SheetsScopes.SPREADSHEETS));
         HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
+
         return new Sheets.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),
                 JacksonFactory.getDefaultInstance(),
@@ -128,6 +124,7 @@ public class MethodsPage extends AbstractClass {
                 .setApplicationName("Close Rates Sync")
                 .build();
     }
+
 
 
 

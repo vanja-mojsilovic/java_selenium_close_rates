@@ -5,10 +5,6 @@ import io.github.cdimascio.dotenv.Dotenv;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -16,26 +12,14 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.TimeoutException;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.*;
 
-import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.SheetsScopes;
-import com.google.api.services.sheets.v4.model.ValueRange;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
 
 
 public abstract class AbstractClass {
@@ -48,12 +32,22 @@ public abstract class AbstractClass {
 
     public static String getSecret(String key) {
         String value = System.getenv(key);
-        if (value == null || value.isEmpty()) {
-            Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-            value = dotenv.get(key);
+        if (value != null && !value.isEmpty()) {
+            System.out.println("[ENV] Found secret for key: " + key);
+            return value;
+        }
+
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        value = dotenv.get(key);
+        if (value != null && !value.isEmpty()) {
+            System.out.println("[LOCAL] Found secret for key: " + key + " in .env file");
+        } else {
+            System.out.println("[WARN] Secret not found for key: " + key);
         }
         return value;
     }
+
+
 
     public static WebElement waitForVisibilityOfElement(WebDriver driver, WebElement element, int numOfSec) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSec));

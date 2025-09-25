@@ -9,12 +9,11 @@ jobs:
 
     env:
       CI: true
+      GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -28,14 +27,6 @@ jobs:
           sudo apt-get install -y wget unzip xvfb libxi6
           wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
-
-      - name: Inject credentials.json from secret
-        run: |
-          printf "%s" "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > credentials.json
-          echo "GOOGLE_CREDENTIALS_PATH=credentials.json" >> $GITHUB_ENV
-          
-      - name: Validate credentials.json format
-        run: jq . credentials.json
 
       - name: Build with Maven
         run: mvn clean compile
