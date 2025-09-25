@@ -33,6 +33,9 @@ jobs:
         run: |
           printf "%s" "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > credentials.json
           echo "GOOGLE_CREDENTIALS_PATH=credentials.json" >> $GITHUB_ENV
+          
+      - name: Validate credentials.json format
+        run: jq . credentials.json
 
       - name: Build with Maven
         run: mvn clean compile
