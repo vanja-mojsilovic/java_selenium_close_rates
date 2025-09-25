@@ -1,45 +1,63 @@
 package com.spothopper;
 
-import io.github.bonigarcia.wdm.WebDriverManager;
-import io.github.cdimascio.dotenv.Dotenv;
+// Java I/O and utility imports
+import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.io.FileInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.*;
 
+// JSON handling
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+// Web scraping
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+// Selenium WebDriver
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.openqa.selenium.TimeoutException;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.time.Duration;
-import java.util.*;
+// WebDriver manager and environment variables
+import io.github.bonigarcia.wdm.WebDriverManager;
+import io.github.cdimascio.dotenv.Dotenv;
 
+// Google Sheets API
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
+
+// OTP for 2FA
 import org.jboss.aerogear.security.otp.Totp;
-import org.openqa.selenium.remote.RemoteWebDriver;
 
 
 public class MethodsPage extends AbstractClass {
@@ -60,7 +78,6 @@ public class MethodsPage extends AbstractClass {
 
     @FindBy(xpath = "//input[@id='identifierId']")
     WebElement googleIdentifierField;
-
 
     @FindBy(xpath = "//div[@id='identifierNext']//button")
     WebElement identifierNextButton;
@@ -89,18 +106,15 @@ public class MethodsPage extends AbstractClass {
     @FindBy(xpath = "//small[contains(text(),'587184')]")
     WebElement hubspotAccountElement;
 
-    @FindBy(xpath = "//div[@data-test-id='report-loaded']//table")
+    @FindBy(xpath = "(//div[@data-test-id='report-loaded']//table)[5]")
     WebElement tableWithOwnersAndCounts;
 
-    @FindBy(xpath = "//p[text()='Report Total']")
-    WebElement reportTotal;
+    @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//p[text()='Report Total']")
+    List<WebElement> reportTotalLocator;
 
-    @FindBy(xpath = "//div[@data-test-id='report-loaded']//table//tr/td[1]")
-    List<WebElement> tableWithOwnerNames;
+    private static final By SALES_REP = By.xpath("(//div[@data-test-id='report-loaded']//table)[5]//tr/td[1]");
 
-    private static final By SALES_REP = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[1]");
-
-    private static final By COUNT_OF_COMPANIES = By.xpath("//div[@data-test-id='report-loaded']//table//tr/td[2]");
+    private static final By COUNT_OF_COMPANIES = By.xpath("(//div[@data-test-id='report-loaded']//table)[5]//tr/td[2]");
 
     @FindBy(xpath = "//span[contains(text(),'10 rows per page')]")
     List<WebElement> tenRowsPerPageDropDown;
@@ -130,6 +144,10 @@ public class MethodsPage extends AbstractClass {
     public MethodsPage(WebDriver driver) {
         this.driver = driver;
         PageFactory.initElements(driver, this);
+    }
+
+    public MethodsPage() {
+        System.out.println("Constructor without driver!");
     }
 
     // Methods
@@ -232,70 +250,58 @@ public class MethodsPage extends AbstractClass {
 
     }
 
-    public boolean scrollIntoViewTable(WebDriver driver, String url) {
+    public void scrollIntoViewTable(WebDriver driver, String url) {
         System.out.println("Navigating to: " + url);
-        boolean result = true;
         try {
             driver.get(url);
+            System.out.println("Wait 20 seconds...");
+            AbstractClass.sleep(20000);
             new WebDriverWait(driver, Duration.ofSeconds(60)).until(
-                webDriver -> ((JavascriptExecutor) webDriver)
-                    .executeScript("return document.readyState").equals("complete")
+                    webDriver -> ((JavascriptExecutor) webDriver)
+                            .executeScript("return document.readyState").equals("complete")
             );
-            WebElement element = new WebDriverWait(driver, Duration.ofSeconds(60))
-                .until(ExpectedConditions.visibilityOf(reportTotal));
-            ((JavascriptExecutor) driver).executeScript(
-                "arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element
-            );
+            System.out.println("The page is completely loaded!");
+
+            List<WebElement> reportTotalElements = waitForVisibilityOfElements(driver, reportTotalLocator, 20);
+
+            if (reportTotalElements == null || reportTotalElements.isEmpty()) {
+                System.out.println("Report Total elements not found via XPath.");
+            } else {
+                WebElement fifthElement = reportTotalElements.size() >= 5 ? reportTotalElements.get(4) : null;
+                if (fifthElement != null) {
+                    System.out.println("Fifth 'Report Total' element found and ready.");
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", fifthElement);
+                } else {
+                    System.out.println("Fewer than 5 'Report Total' elements found.");
+                }
+            }
+
+
         } catch (TimeoutException e) {
-            result = false;
-            System.out.println("Timeout: 'Report Total' element not found — continuing without expanding rows.");
+            System.out.println("Timeout: 'Report Total' element not found. Skipping scroll.");
         } catch (Exception e) {
-            result = false;
             System.out.println("Unexpected error while scrolling to 'Report Total': " + e.getMessage());
         }
-        return result;
     }
+
 
 
 
     public void getData(JSONArray closeRates, String fieldName) {
         WebElement reportNameElement = AbstractClass.waitForVisibilityOfElement(driver,reportNameLocator, 60);
         String reportName = reportNameElement.getText();
-        int startIndex = 0;
-        int endIndex = reportName.indexOf("-");
-        String team = reportName.substring(startIndex, endIndex).trim();
-        System.out.println(team);
+        System.out.println(reportName);
         Map<String, Integer> aggregatedCounts = new LinkedHashMap<>();
-        // Fetch data from first page
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // preserve interrupt status
-            e.printStackTrace(); // or log it
+            Thread.currentThread().interrupt();
+            e.printStackTrace();
         }
+        sleep(1000);
         aggregatePageData(aggregatedCounts);
-        // Try navigating to second page
-        try {
-            WebElement firstPageButton = AbstractClass.waitForVisibilityOfElement(driver,navigateToFirstPageLocator, 15);
-            JavascriptExecutor js = (JavascriptExecutor) driver;
-            js.executeScript("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", firstPageButton);
-            WebElement nextPageButton = AbstractClass.waitForVisibilityOfElement(driver,navigateToSecondPageLocator, 5);
-            if (nextPageButton != null && nextPageButton.isDisplayed()) {
-                nextPageButton.click();
-                System.out.println("Next Page Button Clicked!");
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // preserve interrupt status
-                    e.printStackTrace(); // or log it
-                }
-                aggregatePageData(aggregatedCounts);
-            }
-        } catch (Exception e) {
-            System.out.println("Second page not found or not clickable — continuing with first page only.");
-        }
 
-        // Step 2: Insert into JSON Array closeRates
+        // Insert into JSON Array closeRates
         int updated = 0, added = 0;
         for (Map.Entry<String, Integer> entry : aggregatedCounts.entrySet()) {
             String salesRep = entry.getKey();
@@ -320,7 +326,6 @@ public class MethodsPage extends AbstractClass {
                 newEntry.put("BdrNomh", "0");
                 newEntry.put("BdrSetSales", "0");
                 newEntry.put("RepSetSales", "0");
-                newEntry.put("Team", team);
                 newEntry.put(fieldName, totalCount);
                 closeRates.put(newEntry);
                 added++;
@@ -333,28 +338,88 @@ public class MethodsPage extends AbstractClass {
 
 
     private void aggregatePageData(Map<String, Integer> aggregatedCounts) {
-        List<WebElement> nameElements = AbstractClass.waitForVisibilityOfElements(driver,driver.findElements(SALES_REP), 15);
-        List<WebElement> countElements = AbstractClass.waitForVisibilityOfElements(driver,driver.findElements(COUNT_OF_COMPANIES), 15);
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        List<WebElement> nameElements = (List<WebElement>) js.executeScript(
+                "return Array.from(document.querySelectorAll(" +
+                        "'div[data-test-id=\"report-loaded\"] table tr td:first-child'" +
+                        "));"
+        );
+
+        List<WebElement> countElements = (List<WebElement>) js.executeScript(
+                "return Array.from(document.querySelectorAll(" +
+                        "'div[data-test-id=\"report-loaded\"] table tr td:nth-child(2)'" +
+                        "));"
+        );
+
+        System.out.println("Sales reps found via JS: " + nameElements.size());
+        System.out.println("Company counts found via JS: " + countElements.size());
 
         if (nameElements == null || countElements == null ||
-            nameElements.isEmpty() || countElements.isEmpty()) {
-            System.out.println("No data found on this page — skipping.");
+                nameElements.isEmpty() || countElements.isEmpty()) {
+            System.out.println("No data found on this page! Skipping.");
             return;
         }
 
         int size = Math.min(nameElements.size(), countElements.size());
+
+        // Phase 1: Count how many times "Report Total" appears
+        int reportTotalCount = 0;
+        for (int i = 0; i < size; i++) {
+            String salesRep = nameElements.get(i).getText().trim().toLowerCase();
+            String countOfActivities = countElements.get(i).getText().trim().toLowerCase();
+            System.out.println(salesRep + " " + countOfActivities);
+            if (salesRep.contains("report total")) {
+                reportTotalCount++;
+            }
+        }
+
+        System.out.println("'Report Total' appears " + reportTotalCount + " times.");
+
+        // Phase 2: Aggregate rows after (n - 1)th "Report Total"
+        int reportTotalSeen = 0;
+        boolean startAggregation = false;
+
         for (int i = 0; i < size; i++) {
             String salesRep = nameElements.get(i).getText().trim();
             String countText = countElements.get(i).getText().trim();
-            int count = countText.isEmpty() ? 0 : Integer.parseInt(countText);
+
+            if (salesRep.toLowerCase().contains("report total")) {
+                reportTotalSeen++;
+                System.out.println("Report Total #" + reportTotalSeen + ": " + countText);
+                if (reportTotalSeen == reportTotalCount - 1) {
+                    System.out.println("Starting aggregation after Report Total #" + reportTotalSeen);
+                    startAggregation = true;
+                }
+                continue;
+            }
+
+            if (!startAggregation) {
+                continue;
+            }
+
+            int count = 0;
+            if (!countText.isEmpty()) {
+                try {
+                    String sanitized = countText.replaceAll("[^\\d]", "");
+                    count = Integer.parseInt(sanitized);
+                } catch (NumberFormatException e) {
+                    System.err.println("Failed to parse count for sales rep '" + salesRep + "' from text: '" + countText + "'");
+                    e.printStackTrace();
+                    continue;
+                }
+            }
+
             aggregatedCounts.merge(salesRep, count, Integer::sum);
         }
     }
 
 
+
+
     public void updateCloseRates(JSONArray closeRates, String spreadsheetId,String rangeForCounts) {
         if (closeRates == null || closeRates.isEmpty()) {
-            System.out.println("No close rate data to update — skipping sheet update.");
+            System.out.println("No close rate data to update! Skipping sheet update.");
             return;
         }
         try {
@@ -370,8 +435,7 @@ public class MethodsPage extends AbstractClass {
                     entry.optString("RepSetNomh", "0"),
                     entry.optString("BdrNomh", "0"),
                     entry.optString("BdrSetSales", "0"),
-                    entry.optString("RepSetSales", "0"),
-                    entry.optString("Team", "")
+                    entry.optString("RepSetSales", "0")
                 ));
             }
             ValueRange body = new ValueRange().setValues(rows);
@@ -413,7 +477,7 @@ public class MethodsPage extends AbstractClass {
                               String googleTotPin,
                               String hubspotTotPin) {
 
-        SignInTest signInTest = new SignInTest(driver); // initial binding
+        SignInTest signInTest = new SignInTest(driver);
 
         for (String url : reportUrls) {
             try {
@@ -425,14 +489,9 @@ public class MethodsPage extends AbstractClass {
                     performLogin(driver, email, googlePassword, googleTotPin, hubspotTotPin);
                     signInTest = new SignInTest(driver);
                 }
-                boolean hasTable = scrollIntoViewTable(driver, url);
-                if (hasTable) {
-                    clickDropDown();
-                    AbstractClass.sleep(1000);
-                    getData(closeRates, reportType);
-                } else {
-                    System.out.println("Skipping data extraction — table not found.");
-                }
+                scrollIntoViewTable(driver, url);
+                AbstractClass.sleep(1000);
+                getData(closeRates, reportType);
                 updateCloseRates(closeRates, spreadsheetId, rangeForCounts);
             } catch (Exception e) {
                 System.out.println("Error processing report: " + url);
@@ -485,6 +544,53 @@ public class MethodsPage extends AbstractClass {
         }
     }
 
+    public static JSONArray buildSalesRepActivityJSON(List<String> listOfCsvFiles, List<String> jsonFields) {
+        Map<String, JSONObject> salesRepMap = new HashMap<>();
+
+        for (int i = 0; i < listOfCsvFiles.size(); i++) {
+            String fileName = listOfCsvFiles.get(i);
+            String fieldName = jsonFields.get(i);
+
+            try (BufferedReader reader = new BufferedReader(new FileReader("resources/" + fileName))) {
+                String line;
+                boolean isHeader = true;
+
+                while ((line = reader.readLine()) != null) {
+                    if (isHeader) {
+                        isHeader = false;
+                        continue;
+                    }
+
+                    String[] columns = line.split("\",\"");
+                    String salesRep = columns[0].replace("\"", "").trim();
+
+                    // Get or create JSON entry
+                    JSONObject entry = salesRepMap.getOrDefault(salesRep, new JSONObject());
+                    entry.put("SalesRep", salesRep);
+
+                    // Initialize all fields if new
+                    for (String field : jsonFields) {
+                        if (!entry.has(field)) {
+                            entry.put(field, "0");
+                        }
+                    }
+
+                    // Increment the current field
+                    int currentCount = Integer.parseInt(entry.getString(fieldName));
+                    entry.put(fieldName, String.valueOf(currentCount + 1));
+
+                    salesRepMap.put(salesRep, entry);
+                }
+
+            } catch (IOException e) {
+                System.err.println("Error reading file: " + fileName);
+                e.printStackTrace();
+            }
+        }
+
+        // Convert map to JSONArray
+        return new JSONArray(salesRepMap.values());
+    }
 
 
 

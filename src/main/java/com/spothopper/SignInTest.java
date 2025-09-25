@@ -4,6 +4,7 @@ import com.spothopper.*;
 import com.spothopper.MethodsPage;
 
 import java.io.FileInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
@@ -52,7 +53,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 
 
 public class SignInTest extends AbstractClass {
-    private WebDriver driver;
+    private static WebDriver driver;
 
     // Locators
     @FindBy(xpath = "//input[@data-test-id='email-input-field']")
@@ -151,96 +152,37 @@ public class SignInTest extends AbstractClass {
 
     // ****************** Main method *****************
     public static void main(String[] args) {
+        //driver = createWebDriver();
 
-
-
-        //WebDriver driver = AbstractClass.createWebDriver();
-
+        String email = VariablesPage.EMAIL;
         String googlePassword = getSecret("GOOGLE_PASSWORD_VANJA");
         String googleTotPin = getSecret("GOOGLE_TOTPIN_VANJA");
         String hubspotTotPin = getSecret("HUBSPOT_TOTPIN_VANJA");
         String spreadsheetId = "1Pxgp3zUZ6khudOVD--5aI3oFd8NQzmkqigCj1ZlScfY";
         String rangeForCountsLastMonth = "last_month!A2";
-        String rangeForCountsThisMonth = "this_month!A2";
-        JSONArray closeRates = new JSONArray();
-        Map<String, List<String>> reportMapLastMonth = new HashMap<>();
-       reportMapLastMonth.put("Pmb", VariablesPage.pmbReportUrlsLastMonth);
-        reportMapLastMonth.put("Calls", VariablesPage.callsReportUrlsLastMonth);
-        reportMapLastMonth.put("BdrMb", VariablesPage.BdrMbReportUrlsLastMonth);
-        reportMapLastMonth.put("RepSetNomh", VariablesPage.RepSetNomhReportUrlsLastMonth);
-        reportMapLastMonth.put("BdrNomh", VariablesPage.BdrNomhReportUrlsLastMonth);
-       reportMapLastMonth.put("BdrSetSales", VariablesPage.BdrSetSalesReportUrlsLastMonth);
-        reportMapLastMonth.put("RepSetSales", VariablesPage.RepSetSalesReportUrlsLastMonth);
-        for (Map.Entry<String, List<String>> entry : reportMapLastMonth.entrySet()) {
 
-            String columnName = entry.getKey();
-            List<String> reportUrls = entry.getValue();
-            WebDriver driver = null;
-            try {
-                WebDriverManager.chromedriver().setup();
-                driver = AbstractClass.createWebDriver();
-                MethodsPage methodsPage = new MethodsPage(driver);
-                SignInTest signInTest = new SignInTest(driver);
-                methodsPage.performLogin(driver, VariablesPage.EMAIL, googlePassword, googleTotPin, hubspotTotPin);
-                methodsPage.processReportList(reportUrls,
-                                             columnName,
-                                             driver,
-                                             closeRates,
-                                             rangeForCountsLastMonth,
-                                             spreadsheetId,
-                                             VariablesPage.EMAIL,
-                                             googlePassword,
-                                             googleTotPin,
-                                             hubspotTotPin);
-            } catch (Exception e) {
-                System.out.println("Fatal error while processing last month: " + columnName);
-                e.printStackTrace();
-            } finally {
-                if (driver != null) {
-                    driver.quit();
-                }
-            }
-        }
+        MethodsPage methodsPage = new MethodsPage();
+       // methodsPage.performLogin(driver, email, googlePassword, googleTotPin, hubspotTotPin);
 
-        //  Process This Month Reports
-        JSONArray closeRatesThisMonth = new JSONArray();
-        Map<String, List<String>> reportMapThisMonth = new HashMap<>();
-        reportMapThisMonth.put("Pmb", VariablesPage.pmbReportUrlsThisMonth);
-        reportMapThisMonth.put("Calls", VariablesPage.callsReportUrlsThisMonth);
-        reportMapThisMonth.put("BdrMb", VariablesPage.BdrMbReportUrlsThisMonth);
-        reportMapThisMonth.put("RepSetNomh", VariablesPage.RepSetNomhReportUrlsThisMonth);
-        reportMapThisMonth.put("BdrNomh", VariablesPage.BdrNomhReportUrlsThisMonth);
-        reportMapThisMonth.put("BdrSetSales", VariablesPage.BdrSetSalesReportUrlsThisMonth);
-        reportMapThisMonth.put("RepSetSales", VariablesPage.RepSetSalesReportUrlsThisMonth);
-        for (Map.Entry<String, List<String>> entry : reportMapThisMonth.entrySet()) {
+        List<String> listOfCsvFiles = Arrays.asList(
+                "pmb-by-sales-reps-last-month.csv",
+                "sales-reps-calls-last-month.csv",
+                "meetings-booked-by-bdrs-last.csv",
+                "bdr-held-w-owner-meetings-la.csv",
+                "sales-rep-held-w-owner-meeting.csv",
+                "closed-won-deals-booked-by-bdrs.csv",
+                "closed-won-deals-booked-by-sale.csv"
+        );
 
-            String columnName = entry.getKey();
-            List<String> reportUrls = entry.getValue();
-            WebDriver driver = null;
-            try {
-                WebDriverManager.chromedriver().setup();
-                driver = AbstractClass.createWebDriver();
-                MethodsPage methodsPage = new MethodsPage(driver);
-                SignInTest signInTest = new SignInTest(driver);
-                methodsPage.performLogin(driver, VariablesPage.EMAIL, googlePassword, googleTotPin, hubspotTotPin);
-                methodsPage.processReportList(reportUrls,
-                                             columnName,
-                                             driver,
-                                             closeRatesThisMonth,
-                                             rangeForCountsThisMonth,
-                                             spreadsheetId,
-                                             VariablesPage.EMAIL,
-                                             googlePassword,
-                                             googleTotPin,
-                                             hubspotTotPin);
-            } catch (Exception e) {
-                System.out.println("Fatal error while processing this month: " + columnName);
-                e.printStackTrace();
-            } finally {
-                if (driver != null) {
-                    driver.quit();
-                }
-            }
-        }
+
+
+        List<String> jsonFields = Arrays.asList(
+                "Pmb", "Calls", "BdrMb",  "BdrNomh","RepSetNomh", "BdrSetSales", "RepSetSales"
+        );
+
+        JSONArray closeRates = methodsPage.buildSalesRepActivityJSON(listOfCsvFiles, jsonFields);
+        methodsPage.updateCloseRates(closeRates, spreadsheetId, rangeForCountsLastMonth);
     }
+
+
 }

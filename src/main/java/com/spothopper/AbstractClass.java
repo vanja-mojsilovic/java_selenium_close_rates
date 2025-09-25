@@ -69,10 +69,14 @@ public abstract class AbstractClass {
         return value;
     }
 
-    public static WebElement waitForVisibilityOfElement(WebDriver driver,WebElement element, int numOfSec) {
+    public static WebElement waitForVisibilityOfElement(WebDriver driver, WebElement element, int numOfSec) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSec));
-        return wait.until(ExpectedConditions.visibilityOf(element));
+        WebElement visibleElement = wait.until(ExpectedConditions.visibilityOf(element));
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].scrollIntoView(true);", visibleElement);
+        return visibleElement;
     }
+
 
     public static List<WebElement> waitForVisibilityOfElements(WebDriver driver,List<WebElement> elements, int numOfSec) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSec));

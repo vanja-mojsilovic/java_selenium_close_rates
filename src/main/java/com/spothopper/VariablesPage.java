@@ -148,125 +148,41 @@ public class VariablesPage extends AbstractClass {
 
         // PMB By Sales Reps - Last Month
         public static final List<String> pmbReportUrlsLastMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148069",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080121",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085819",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109173462",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088373",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148524",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149066",
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354630",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971621",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092772",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524801",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762742",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766513"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150192135"
         );
 
         // Calls - Last Month
         public static final List<String> callsReportUrlsLastMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148075",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/128527614",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/128528016",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/128526818",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/128529603",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/128530561",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/128531073",
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354636",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971627",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/128530012",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/128532303",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762748",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766519"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150193451"
         );
 
         // Meetings Booked By BDRs - Last Month
         public static final List<String> BdrMbReportUrlsLastMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148071",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080123",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085821",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109313705",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088375",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148526",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149068",
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354632",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971623",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092774",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524803",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762744",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766515"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150193811"
         );
 
         // Sales Rep Held w. Owner Meetings - Last Month
         public static final List<String> RepSetNomhReportUrlsLastMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148070",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080122",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085820",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109174100",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088374",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148525",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149067",
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354631",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971622",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092773",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524802",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762743",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766514"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150194434"
 
         );
 
         // BDR Held w. Owner Meetings - Last Month
         public static final List<String> BdrNomhReportUrlsLastMonth = List.of(
-          "https://app.hubspot.com/reports-dashboard/587184/view/15296315/132148072",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/113080124",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/113085822",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/109314151",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/113088376",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/113148527",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/113149069"
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/144354633",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/129971624",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092775",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/120524804",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762745",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766516"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150194838"
 
         );
 
         // Closed Won Deals Booked by BDRs - Last Month
         public static final List<String> BdrSetSalesReportUrlsLastMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/147246052",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/147255130",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/147255435",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/147144069",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/147271739",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/147274767",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/147275351",
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/147278340",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/147277385",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/147274236",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/147277063",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762741",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766512"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150196031"
 
 
         );
 
         // Closed Won Deals Booked by Sales Reps - Last Month
         public static final List<String> RepSetSalesReportUrlsLastMonth = List.of(
-            "https://app.hubspot.com/reports-dashboard/587184/view/15296315/147246035",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12820743/147255096",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821545/147255432",
-            "https://app.hubspot.com/reports-dashboard/587184/view/11931971/147144021",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12821874/147271727",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830013/147274760",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12830092/147275278",
-            "https://app.hubspot.com/reports-dashboard/587184/view/16817770/147278332",
-            "https://app.hubspot.com/reports-dashboard/587184/view/15008226/147277362",
-            "https://app.hubspot.com/reports-dashboard/587184/view/12822410/113092773",
-            "https://app.hubspot.com/reports-dashboard/587184/view/13916924/147277060",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17484591/149762740",
-            "https://app.hubspot.com/reports-dashboard/587184/view/17485043/149766511"
+            "https://app.hubspot.com/reports-dashboard/587184/view/17541126/150196395"
 
         );
 
