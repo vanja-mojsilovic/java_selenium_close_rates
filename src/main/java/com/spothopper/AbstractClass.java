@@ -40,20 +40,6 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 
 public abstract class AbstractClass {
 
-     public static WebDriver createWebDriver() {
-        ChromeOptions options = new ChromeOptions();
-        if (isCIEnvironment()) {
-            options.addArguments("--headless=new"); // Use new headless mode for Chrome 109+
-            options.addArguments("--disable-gpu");
-            options.addArguments("--window-size=1920,1080");
-            options.addArguments("--no-sandbox");
-            options.addArguments("--disable-dev-shm-usage");
-        } else {
-            options.addArguments("--start-maximized");
-        }
-        WebDriverManager.chromedriver().setup();
-        return new ChromeDriver(options);
-    }
 
     public static boolean isCIEnvironment() {
         String ci = System.getenv("CI");

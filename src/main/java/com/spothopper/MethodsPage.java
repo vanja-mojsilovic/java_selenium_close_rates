@@ -110,15 +110,26 @@ public class MethodsPage extends AbstractClass {
 
     // important
     private Sheets getSheetsService() throws IOException, GeneralSecurityException {
-        Dotenv dotenv = Dotenv.load();
-        String credentialsPath = dotenv.get("GOOGLE_CREDENTIALS_PATH");
-        GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream("credentials.json"))
-            .createScoped(List.of(SheetsScopes.SPREADSHEETS));
+        String credentialsPath = getSecret("GOOGLE_CREDENTIALS_PATH");
+        if (credentialsPath == null || credentialsPath.isEmpty()) {
+            credentialsPath = "credentials.json";
+        }
+        File credentialsFile = new File(credentialsPath);
+        if (!credentialsFile.exists()) {
+            throw new IOException("Missing credentials file at: " + credentialsPath);
+        }
+        GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile))
+                .createScoped(List.of(SheetsScopes.SPREADSHEETS));
         HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
-        return new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), requestInitializer)
-            .setApplicationName("Close Rates Sync")
-            .build();
+        return new Sheets.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                JacksonFactory.getDefaultInstance(),
+                requestInitializer)
+                .setApplicationName("Close Rates Sync")
+                .build();
     }
+
+
 
     // important
     public static JSONArray buildSalesRepActivityJSON(List<String> listOfCsvFiles, List<String> jsonFields) {
