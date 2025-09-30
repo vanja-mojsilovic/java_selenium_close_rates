@@ -70,7 +70,10 @@ public class MethodsPage extends AbstractClass {
                     entry.optString("RepSetNomh", "0"),
                     entry.optString("BdrNomh", "0"),
                     entry.optString("BdrSetSales", "0"),
-                    entry.optString("RepSetSales", "0")
+                    entry.optString("RepSetSales", "0"),
+                    entry.optString("TotalLocations", "0"),
+                    entry.optString("TotalMrr", "0"),
+                    entry.optString("GmMeetingsHeld", "0")
                 ));
             }
             ValueRange body = new ValueRange().setValues(rows);
@@ -151,9 +154,27 @@ public class MethodsPage extends AbstractClass {
                             entry.put(field, "0");
                         }
                     }
-                    int currentCount = Integer.parseInt(entry.getString(fieldName));
-                    entry.put(fieldName, String.valueOf(currentCount + 1));
-
+                    if (fileName.equals("total-mrr-last-month-s-sales.csv")) {
+                        String mrrValueStr = columns[1].replace("\"", "").trim();
+                        double mrrValue = 0.0;
+                        try {
+                            mrrValue = Double.parseDouble(mrrValueStr);
+                        } catch (NumberFormatException e) {
+                            System.err.println("Invalid MRR value for sales rep " + salesRep + ": " + mrrValueStr);
+                            mrrValue = 0.0; // fallback to zero if parsing fails
+                        }
+                        double currentMRR = 0.0;
+                        try {
+                            currentMRR = Double.parseDouble(entry.getString(fieldName));
+                        } catch (NumberFormatException e) {
+                            currentMRR = 0.0; // fallback if existing value is malformed
+                        }
+                        entry.put(fieldName, String.valueOf(currentMRR + mrrValue));
+                    } else {
+                        // Default logic: count occurrences
+                        int currentCount = Integer.parseInt(entry.getString(fieldName));
+                        entry.put(fieldName, String.valueOf(currentCount + 1));
+                    }
                     salesRepMap.put(salesRep, entry);
                 }
             } catch (IOException e) {

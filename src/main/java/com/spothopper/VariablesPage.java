@@ -13,7 +13,7 @@ public class VariablesPage extends AbstractClass {
     public static String spreadsheetId = "1Pxgp3zUZ6khudOVD--5aI3oFd8NQzmkqigCj1ZlScfY";
     public static String rangeForCountsLastMonth = "last_month!A2";
     public static List<String> jsonFields = Arrays.asList(
-            "Pmb", "Calls", "BdrMb",  "BdrNomh","RepSetNomh", "BdrSetSales", "RepSetSales"
+            "Pmb", "Calls", "BdrMb",  "BdrNomh","RepSetNomh", "BdrSetSales", "RepSetSales","TotalLocations","TotalMrr","GmMeetingsHeld"
     );
 
     public static List<String> listOfCsvFiles = Arrays.asList(
@@ -23,7 +23,10 @@ public class VariablesPage extends AbstractClass {
             "bdr-held-w-owner-meetings-la.csv",
             "sales-rep-held-w-owner-meeting.csv",
             "closed-won-deals-booked-by-bdrs.csv",
-            "closed-won-deals-booked-by-sale.csv"
+            "closed-won-deals-booked-by-sale.csv",
+            "sales-rep-total-locations-las.csv",
+            "total-mrr-last-month-s-sales.csv",
+            "gm-meetings-held-last-month.csv"
     );
 
 
