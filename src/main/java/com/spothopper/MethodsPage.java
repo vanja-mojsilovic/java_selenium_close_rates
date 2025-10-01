@@ -31,6 +31,8 @@ import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
 
 // OTP for 2FA
 import org.jboss.aerogear.security.otp.Totp;
@@ -134,78 +136,122 @@ public class MethodsPage extends AbstractClass {
     // important
     public static JSONArray buildSalesRepActivityJSON(List<String> listOfCsvFiles, List<String> jsonFields) {
         Map<String, JSONObject> salesRepMap = new HashMap<>();
+
         for (int i = 0; i < listOfCsvFiles.size(); i++) {
             String fileName = listOfCsvFiles.get(i);
             String fieldName = jsonFields.get(i);
-            try (BufferedReader reader = new BufferedReader(new FileReader("resources/" + fileName))) {
-                String line;
+
+            try (CSVReader reader = new CSVReader(new FileReader("resources/" + fileName))) {
+                String[] columns;
                 boolean isHeader = true;
-                while ((line = reader.readLine()) != null) {
+
+                while ((columns = reader.readNext()) != null) {
                     if (isHeader) {
                         isHeader = false;
                         continue;
                     }
-                    String[] columns = line.split("\",\"");
-                    String salesRep = columns[0].replace("\"", "").trim();
-                    JSONObject entry = salesRepMap.getOrDefault(salesRep, new JSONObject());
-                    entry.put("SalesRep", salesRep);
+
+                    String salesRep = columns[0].trim();
+                    JSONObject entry = salesRepMap.get(salesRep);
+                    if (entry == null) {
+                        entry = new JSONObject();
+                        entry.put("SalesRep", salesRep);
+                    }
+
+
                     for (String field : jsonFields) {
                         if (!entry.has(field)) {
                             entry.put(field, "0");
                         }
                     }
+
                     if (fileName.equals("total-mrr-last-month-s-sales.csv")) {
-                        String mrrValueStr = columns[1].replace("\"", "").trim();
+                        String mrrValueStr = columns[1].trim();
                         double mrrValue = 0.0;
                         try {
                             mrrValue = Double.parseDouble(mrrValueStr);
                         } catch (NumberFormatException e) {
                             System.err.println("Invalid MRR value for sales rep " + salesRep + ": " + mrrValueStr);
-                            mrrValue = 0.0;
                         }
+
                         double currentMRR = 0.0;
                         try {
                             currentMRR = Double.parseDouble(entry.getString(fieldName));
                         } catch (NumberFormatException e) {
                             currentMRR = 0.0;
                         }
+
                         entry.put(fieldName, String.valueOf(currentMRR + mrrValue));
                     }
-                    else if (fileName.equals("sales-reps-calls-last-month.csv")) {
-                        String[] columnsInCsv = line.split("\",\"");
-                        String salesRepInCsv = columnsInCsv[0].replace("\"", "").trim();
-                        String companyRecordId = columnsInCsv[1].replace("\"", "").trim();
-                        String uniqueKey = salesRepInCsv + "," + companyRecordId;
-                        JSONArray arr = entry.optJSONArray("uniqueRows");
-                        Set<String> uniqueRows = new HashSet<>();
-                        if (arr != null) {
-                            for (int j = 0; j < arr.length(); j++) {
-                                uniqueRows.add(arr.getString(j));
-                            }
-                        }
-                        if (!uniqueRows.contains(uniqueKey)) {
-                            uniqueRows.add(uniqueKey);
-                            int currentCount = Integer.parseInt(entry.getString(fieldName));
-                            entry.put(fieldName, String.valueOf(currentCount + 1));
-                            entry.put("uniqueRows", new JSONArray(uniqueRows));
-                        }
+                    else if (fileName.equals("pmb-by-sales-reps-last-month.csv") && columns.length >= 6) {
+                        String companyRecordId = columns[5].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName);
                     }
+                    else if (fileName.equals("sales-reps-calls-last-month.csv") && columns.length >= 2) {
+                        String companyRecordId = columns[1].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName);
+                    }
+                    else if (fileName.equals("meetings-booked-by-bdrs-last.csv") && columns.length >= 7) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName);
+                    }
+                    /*
+                    else if (fileName.equals("sales-rep-held-w-owner-meeting.csv")) {
+                        if (columns.length < 6) {
+                            System.err.println("Skipping malformed row (too few columns): " + Arrays.toString(columns));
+                            continue;
+                        }
+                        //System.out.println("Processing row for sales rep: " + salesRep);
+                        //System.out.println("Company ID: " + columns[4]);
+                        String companyRecordId = columns[4].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName);
+                        System.out.println("Current count for " + fieldName + ": " + entry.getString(fieldName));
+                    }
+
+                     */
                     else {
                         int currentCount = Integer.parseInt(entry.getString(fieldName));
                         entry.put(fieldName, String.valueOf(currentCount + 1));
                     }
+
                     salesRepMap.put(salesRep, entry);
                 }
-            } catch (IOException e) {
+            } catch (IOException | CsvValidationException e) {
                 System.err.println("Error reading file: " + fileName);
                 e.printStackTrace();
             }
         }
+
         for (JSONObject obj : salesRepMap.values()) {
             obj.remove("uniqueRows");
         }
+
         return new JSONArray(salesRepMap.values());
     }
+
+
+    private static boolean isUniqueAndCount(JSONObject entry, String uniqueKey, String fieldName) {
+        JSONArray arr = entry.optJSONArray("uniqueRows");
+        Set<String> uniqueRows = new HashSet<>();
+        if (arr != null) {
+            for (int j = 0; j < arr.length(); j++) {
+                uniqueRows.add(arr.getString(j));
+            }
+        }
+        if (!uniqueRows.contains(uniqueKey)) {
+            uniqueRows.add(uniqueKey);
+            int currentCount = Integer.parseInt(entry.getString(fieldName));
+            entry.put(fieldName, String.valueOf(currentCount + 1));
+            entry.put("uniqueRows", new JSONArray(uniqueRows));
+            return true;
+        }
+        return false;
+    }
+
 
 
 } // class
