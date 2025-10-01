@@ -161,17 +161,36 @@ public class MethodsPage extends AbstractClass {
                             mrrValue = Double.parseDouble(mrrValueStr);
                         } catch (NumberFormatException e) {
                             System.err.println("Invalid MRR value for sales rep " + salesRep + ": " + mrrValueStr);
-                            mrrValue = 0.0; // fallback to zero if parsing fails
+                            mrrValue = 0.0;
                         }
                         double currentMRR = 0.0;
                         try {
                             currentMRR = Double.parseDouble(entry.getString(fieldName));
                         } catch (NumberFormatException e) {
-                            currentMRR = 0.0; // fallback if existing value is malformed
+                            currentMRR = 0.0;
                         }
                         entry.put(fieldName, String.valueOf(currentMRR + mrrValue));
-                    } else {
-                        // Default logic: count occurrences
+                    }
+                    else if (fileName.equals("sales-reps-calls-last-month.csv")) {
+                        String[] columnsInCsv = line.split("\",\"");
+                        String salesRepInCsv = columnsInCsv[0].replace("\"", "").trim();
+                        String companyRecordId = columnsInCsv[1].replace("\"", "").trim();
+                        String uniqueKey = salesRepInCsv + "," + companyRecordId;
+                        JSONArray arr = entry.optJSONArray("uniqueRows");
+                        Set<String> uniqueRows = new HashSet<>();
+                        if (arr != null) {
+                            for (int j = 0; j < arr.length(); j++) {
+                                uniqueRows.add(arr.getString(j));
+                            }
+                        }
+                        if (!uniqueRows.contains(uniqueKey)) {
+                            uniqueRows.add(uniqueKey);
+                            int currentCount = Integer.parseInt(entry.getString(fieldName));
+                            entry.put(fieldName, String.valueOf(currentCount + 1));
+                            entry.put("uniqueRows", new JSONArray(uniqueRows));
+                        }
+                    }
+                    else {
                         int currentCount = Integer.parseInt(entry.getString(fieldName));
                         entry.put(fieldName, String.valueOf(currentCount + 1));
                     }
@@ -181,6 +200,9 @@ public class MethodsPage extends AbstractClass {
                 System.err.println("Error reading file: " + fileName);
                 e.printStackTrace();
             }
+        }
+        for (JSONObject obj : salesRepMap.values()) {
+            obj.remove("uniqueRows");
         }
         return new JSONArray(salesRepMap.values());
     }
