@@ -140,6 +140,7 @@ public class MethodsPage extends AbstractClass {
         for (int i = 0; i < listOfCsvFiles.size(); i++) {
             String fileName = listOfCsvFiles.get(i);
             String fieldName = jsonFields.get(i);
+            Set<String> seenKeys = new HashSet<>();
 
             try (CSVReader reader = new CSVReader(new FileReader("resources/" + fileName))) {
                 String[] columns;
@@ -186,33 +187,50 @@ public class MethodsPage extends AbstractClass {
                     else if (fileName.equals("pmb-by-sales-reps-last-month.csv") && columns.length >= 6) {
                         String companyRecordId = columns[5].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName);
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
                     else if (fileName.equals("sales-reps-calls-last-month.csv") && columns.length >= 2) {
                         String companyRecordId = columns[1].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName);
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
                     else if (fileName.equals("meetings-booked-by-bdrs-last.csv") && columns.length >= 7) {
                         String companyRecordId = columns[6].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName);
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
-                    /*
-                    else if (fileName.equals("sales-rep-held-w-owner-meeting.csv")) {
-                        if (columns.length < 6) {
-                            System.err.println("Skipping malformed row (too few columns): " + Arrays.toString(columns));
-                            continue;
-                        }
-                        //System.out.println("Processing row for sales rep: " + salesRep);
-                        //System.out.println("Company ID: " + columns[4]);
+                    else if (fileName.equals("sales-rep-held-w-owner-meeting.csv") ) {
                         String companyRecordId = columns[4].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName);
-                        System.out.println("Current count for " + fieldName + ": " + entry.getString(fieldName));
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("bdr-held-w-owner-meetings-la.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("closed-won-deals-booked-by-bdrs.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("closed-won-deals-booked-by-sale.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("sales-rep-total-locations-las.csv") ) {
+                        String companyRecordId = columns[1].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("gm-meetings-held-last-month.csv") ) {
+                        String companyRecordId = columns[3].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
 
-                     */
+
                     else {
                         int currentCount = Integer.parseInt(entry.getString(fieldName));
                         entry.put(fieldName, String.valueOf(currentCount + 1));
@@ -225,32 +243,19 @@ public class MethodsPage extends AbstractClass {
                 e.printStackTrace();
             }
         }
-
-        for (JSONObject obj : salesRepMap.values()) {
-            obj.remove("uniqueRows");
-        }
-
         return new JSONArray(salesRepMap.values());
     }
 
-
-    private static boolean isUniqueAndCount(JSONObject entry, String uniqueKey, String fieldName) {
-        JSONArray arr = entry.optJSONArray("uniqueRows");
-        Set<String> uniqueRows = new HashSet<>();
-        if (arr != null) {
-            for (int j = 0; j < arr.length(); j++) {
-                uniqueRows.add(arr.getString(j));
-            }
-        }
-        if (!uniqueRows.contains(uniqueKey)) {
-            uniqueRows.add(uniqueKey);
+    private static boolean isUniqueAndCount(JSONObject entry, String uniqueKey, String fieldName, Set<String> seenKeys) {
+        if (!seenKeys.contains(uniqueKey)) {
+            seenKeys.add(uniqueKey);
             int currentCount = Integer.parseInt(entry.getString(fieldName));
             entry.put(fieldName, String.valueOf(currentCount + 1));
-            entry.put("uniqueRows", new JSONArray(uniqueRows));
             return true;
         }
         return false;
     }
+
 
 
 
