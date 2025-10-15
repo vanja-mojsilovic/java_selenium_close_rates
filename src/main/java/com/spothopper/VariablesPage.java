@@ -12,11 +12,16 @@ public class VariablesPage extends AbstractClass {
     public static final Map<String, List<String>> REPORT_MAP_THIS_MONTH = new HashMap<>();
     public static String spreadsheetId = "1Pxgp3zUZ6khudOVD--5aI3oFd8NQzmkqigCj1ZlScfY";
     public static String rangeForCountsLastMonth = "last_month!A2";
-    public static List<String> jsonFields = Arrays.asList(
-            "Pmb", "Calls", "BdrMb", "RepSetNomh", "BdrNomh", "BdrSetSales", "RepSetSales","TotalLocations","TotalMrr","GmMeetingsHeld"
-    );
+    public static String rangeForCountsThisMonth = "this_month!A2";
+    public static List<String> jsonFieldsLastMonth = Arrays.asList(
+            "Pmb", "Calls", "BdrMb", "RepSetNomh", "BdrNomh", "BdrSetSales", "RepSetSales","TotalLocations","TotalMrr","GmMeetingsHeld");
+    public static List<String> jsonFieldsThisMonth = Arrays.asList(
+           "Calls", "Pmb", "TotalMrr", "BdrMb", "BdrNomh","NumberOfMissingOutcomes","RepSetNomh");
 
-    public static List<String> listOfCsvFiles = Arrays.asList(
+
+
+    public static List<String> listOfCsvFilesLastMonth = Arrays.asList(
+            // ordered as in sheets document
             "pmb-by-sales-reps-last-month.csv",
             "sales-reps-calls-last-month.csv",
             "meetings-booked-by-bdrs-last.csv",
@@ -29,9 +34,15 @@ public class VariablesPage extends AbstractClass {
             "gm-meetings-held-last-month.csv"
     );
 
-
-
-
-
+    public static List<String> listOfCsvFilesThisMonth = Arrays.asList(
+            // ordered as in sheets document
+            "sales-reps-calls-this-month.csv",
+            "pmb-by-sales-reps-this-month.csv",
+            "total-mrr-this-month-s-sales.csv",
+            "meetings-booked-by-bdrs-this.csv",
+            "bdr-held-w-owner-meetings-th.csv",
+            "meetings-with-no-outcome-this.csv",
+            "sales-rep-held-w-owner-meeting.csv"
+    );
 
 }

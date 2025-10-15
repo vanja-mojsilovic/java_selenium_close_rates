@@ -35,8 +35,6 @@ import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 
 // OTP for 2FA
-import org.jboss.aerogear.security.otp.Totp;
-
 
 
 // OTP for 2FA
@@ -53,8 +51,47 @@ public class MethodsPage extends AbstractClass {
 
     // Methods
 
-    // important
-    public void updateCloseRates(JSONArray closeRates, String spreadsheetId,String rangeForCounts) {
+
+    public void updateCloseRatesThisMonth(JSONArray closeRates, String spreadsheetId,String rangeForCounts) {
+        if (closeRates == null || closeRates.isEmpty()) {
+            System.out.println("No close rate data to update! Skipping sheet update.");
+            return;
+        }
+        try {
+            Sheets sheetsService = getSheetsService();
+            List<List<Object>> rows = new ArrayList<>();
+            for (int i = 0; i < closeRates.length(); i++) {
+                JSONObject entry = closeRates.getJSONObject(i);
+                rows.add(
+                        Arrays.asList(
+                            entry.optString("SalesRep", ""),
+                            entry.optInt("Calls", 0),
+                            entry.optInt("Pmb", 0),
+                            entry.optDouble("TotalMrr", 0.0),
+                            entry.optInt("BdrMb", 0),
+                            entry.optInt("BdrNomh", 0),
+                            entry.optInt("NumberOfMissingOutcomes", 0),
+                            entry.optInt("RepSetNomh", 0)
+                        )
+                );
+            }
+            ValueRange body = new ValueRange().setValues(rows);
+            UpdateValuesResponse response = sheetsService.spreadsheets().values()
+                    .update(spreadsheetId, rangeForCounts, body)
+                    .setValueInputOption("RAW")
+                    .execute();
+            System.out.println("Updated range: " + response.getUpdatedRange());
+            System.out.println("Replaced " + rows.size() + " rows in 'close_rates_result' sheet.");
+
+
+        } catch (IOException | GeneralSecurityException e) {
+            System.err.println("Failed to update Google Sheet: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    public void updateCloseRatesLastMonth(JSONArray closeRates, String spreadsheetId,String rangeForCounts) {
         if (closeRates == null || closeRates.isEmpty()) {
             System.out.println("No close rate data to update! Skipping sheet update.");
             return;
@@ -65,17 +102,17 @@ public class MethodsPage extends AbstractClass {
             for (int i = 0; i < closeRates.length(); i++) {
                 JSONObject entry = closeRates.getJSONObject(i);
                 rows.add(Arrays.asList(
-                    entry.optString("SalesRep", "0"),
-                    entry.optString("Pmb", "0"),
-                    entry.optString("Calls", "0"),
-                    entry.optString("BdrMb", "0"),
-                    entry.optString("RepSetNomh", "0"),
-                    entry.optString("BdrNomh", "0"),
-                    entry.optString("BdrSetSales", "0"),
-                    entry.optString("RepSetSales", "0"),
-                    entry.optString("TotalLocations", "0"),
-                    entry.optString("TotalMrr", "0"),
-                    entry.optString("GmMeetingsHeld", "0")
+                    entry.optString("SalesRep", ""),
+                    entry.optInt("Pmb", 0),
+                    entry.optInt("Calls", 0),
+                    entry.optInt("BdrMb", 0),
+                    entry.optInt("RepSetNomh", 0),
+                    entry.optInt("BdrNomh", 0),
+                    entry.optInt("BdrSetSales", 0),
+                    entry.optInt("RepSetSales", 0),
+                    entry.optInt("TotalLocations", 0),
+                    entry.optDouble ("TotalMrr", 0.0),
+                    entry.optInt("GmMeetingsHeld", 0)
                 ));
             }
             ValueRange body = new ValueRange().setValues(rows);
@@ -94,34 +131,27 @@ public class MethodsPage extends AbstractClass {
     }
 
 
-    // important
+
     private Sheets getSheetsService() throws IOException, GeneralSecurityException {
         GoogleCredentials credentials;
-
-        // Try environment-based injection first (CI mode)
         String rawJson = getSecret("GOOGLE_CREDENTIALS_JSON");
-
         if (rawJson != null && !rawJson.isEmpty()) {
             InputStream stream = new ByteArrayInputStream(rawJson.getBytes(StandardCharsets.UTF_8));
             credentials = GoogleCredentials.fromStream(stream);
         } else {
-            // Fallback to file-based credentials (local mode)
             String credentialsPath = getSecret("GOOGLE_CREDENTIALS_PATH");
             if (credentialsPath == null || credentialsPath.isEmpty()) {
                 credentialsPath = "credentials.json";
             }
-
             File credentialsFile = new File(credentialsPath);
             if (!credentialsFile.exists()) {
                 throw new IOException("Missing credentials file at: " + credentialsPath);
             }
-
             credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFile));
         }
 
         credentials = credentials.createScoped(List.of(SheetsScopes.SPREADSHEETS));
         HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
-
         return new Sheets.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(),
                 JacksonFactory.getDefaultInstance(),
@@ -130,11 +160,99 @@ public class MethodsPage extends AbstractClass {
                 .build();
     }
 
+    public static JSONArray buildSalesRepActivityJsonThisMonth(List<String> listOfCsvFiles, List<String> jsonFields) {
+        Map<String, JSONObject> salesRepMap = new HashMap<>();
+        for (int i = 0; i < listOfCsvFiles.size(); i++) {
+            String fileName = listOfCsvFiles.get(i);
+            String fieldName = jsonFields.get(i);
+            Set<String> seenKeys = new HashSet<>();
+            try (CSVReader reader = new CSVReader(new FileReader("resources/this_month/" + fileName))) {
+                String[] columns;
+                boolean isHeader = true;
+                while ((columns = reader.readNext()) != null) {
+                    if (isHeader) {
+                        isHeader = false;
+                        continue;
+                    }
+                    String salesRep = columns[0].trim();
+                    JSONObject entry = salesRepMap.get(salesRep);
+                    if (entry == null) {
+                        entry = new JSONObject();
+                        entry.put("SalesRep", salesRep);
+                    }
+                    for (String field : jsonFields) {
+                        if (!entry.has(field)) {
+                            entry.put(field, "0");
+                        }
+                    }
+                    if (fileName.equals("sales-reps-calls-this-month.csv") ) {
+                        String companyRecordId = columns[1].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("pmb-by-sales-reps-this-month.csv")) {
+                        String companyRecordId = columns[5].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("total-mrr-this-month-s-sales.csv")) {
+                        String mrrValueStr = columns[1].trim();
+                        double mrrValue = 0.0;
+                        try {
+                            mrrValue = Double.parseDouble(mrrValueStr);
+                        } catch (NumberFormatException e) {
+                            System.err.println("Invalid MRR value for sales rep " + salesRep + ": " + mrrValueStr);
+                        }
 
+                        double currentMRR = 0.0;
+                        try {
+                            currentMRR = Double.parseDouble(entry.getString(fieldName));
+                        } catch (NumberFormatException e) {
+                            currentMRR = 0.0;
+                        }
+                        entry.put(fieldName, String.valueOf(currentMRR + mrrValue));
+                    }
 
+                    else if (fileName.equals("meetings-booked-by-bdrs-this.csv")) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
 
-    // important
-    public static JSONArray buildSalesRepActivityJSON(List<String> listOfCsvFiles, List<String> jsonFields) {
+                    else if (fileName.equals("bdr-held-w-owner-meetings-th.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("meetings-with-no-outcome-this.csv") ) {
+                        String companyRecordId = columns[3].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("sales-rep-held-w-owner-meeting.csv") ) {
+                        String companyRecordId = columns[5].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else {
+                        int currentCount = Integer.parseInt(entry.getString(fieldName));
+                        entry.put(fieldName, String.valueOf(currentCount + 1));
+                    }
+
+                    salesRepMap.put(salesRep, entry);
+                }
+            } catch (IOException | CsvValidationException e) {
+                System.err.println("Error reading file: " + fileName);
+                e.printStackTrace();
+            }
+        }
+        return new JSONArray(salesRepMap.values());
+    }
+
+    public static JSONArray buildSalesRepActivityJsonLastMonth(List<String> listOfCsvFiles, List<String> jsonFields) {
         Map<String, JSONObject> salesRepMap = new HashMap<>();
 
         for (int i = 0; i < listOfCsvFiles.size(); i++) {
@@ -142,24 +260,20 @@ public class MethodsPage extends AbstractClass {
             String fieldName = jsonFields.get(i);
             Set<String> seenKeys = new HashSet<>();
 
-            try (CSVReader reader = new CSVReader(new FileReader("resources/" + fileName))) {
+            try (CSVReader reader = new CSVReader(new FileReader("resources/last_month/" + fileName))) {
                 String[] columns;
                 boolean isHeader = true;
-
                 while ((columns = reader.readNext()) != null) {
                     if (isHeader) {
                         isHeader = false;
                         continue;
                     }
-
                     String salesRep = columns[0].trim();
                     JSONObject entry = salesRepMap.get(salesRep);
                     if (entry == null) {
                         entry = new JSONObject();
                         entry.put("SalesRep", salesRep);
                     }
-
-
                     for (String field : jsonFields) {
                         if (!entry.has(field)) {
                             entry.put(field, "0");
@@ -181,7 +295,6 @@ public class MethodsPage extends AbstractClass {
                         } catch (NumberFormatException e) {
                             currentMRR = 0.0;
                         }
-
                         entry.put(fieldName, String.valueOf(currentMRR + mrrValue));
                     }
                     else if (fileName.equals("pmb-by-sales-reps-last-month.csv") && columns.length >= 6) {
