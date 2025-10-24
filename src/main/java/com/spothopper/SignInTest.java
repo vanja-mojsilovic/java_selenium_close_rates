@@ -63,13 +63,18 @@ public class SignInTest extends AbstractClass {
         String email = VariablesPage.EMAIL;
         MethodsPage methodsPage = new MethodsPage();
 
-        // Last month
-        //JSONArray closeRatesLastMonth = methodsPage.buildSalesRepActivityJsonLastMonth(VariablesPage.listOfCsvFilesLastMonth, VariablesPage.jsonFieldsLastMonth);
-        //methodsPage.updateCloseRatesLastMonth(closeRatesLastMonth, VariablesPage.spreadsheetId, VariablesPage.rangeForCountsLastMonth);
+        boolean last_month = true;
+        boolean this_month = true;
 
-        // This month
-        JSONArray closeRatesThisMonth = methodsPage.buildSalesRepActivityJsonThisMonth(VariablesPage.listOfCsvFilesThisMonth, VariablesPage.jsonFieldsThisMonth);
-        methodsPage.updateCloseRatesThisMonth(closeRatesThisMonth, VariablesPage.spreadsheetId, VariablesPage.rangeForCountsThisMonth);
+        if(last_month){
+            JSONArray closeRatesLastMonth = methodsPage.buildSalesRepActivityJsonLastMonth(VariablesPage.listOfCsvFilesLastMonth, VariablesPage.jsonFieldsLastMonth);
+            methodsPage.updateCloseRatesLastMonth(closeRatesLastMonth, VariablesPage.spreadsheetId, VariablesPage.rangeForCountsLastMonth);
+        }
+
+        if(this_month){
+            JSONArray closeRatesThisMonth = methodsPage.buildSalesRepActivityJsonThisMonth(VariablesPage.listOfCsvFilesThisMonth, VariablesPage.jsonFieldsThisMonth);
+            methodsPage.updateCloseRatesThisMonth(closeRatesThisMonth, VariablesPage.spreadsheetId, VariablesPage.rangeForCountsThisMonth);
+        }
 
 
     }

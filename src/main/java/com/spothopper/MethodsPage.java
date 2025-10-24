@@ -110,6 +110,7 @@ public class MethodsPage extends AbstractClass {
                     entry.optInt("BdrNomh", 0),
                     entry.optInt("BdrSetSales", 0),
                     entry.optInt("RepSetSales", 0),
+                    entry.optInt("TotalDeals", 0),
                     entry.optInt("TotalLocations", 0),
                     entry.optDouble ("TotalMrr", 0.0),
                     entry.optInt("GmMeetingsHeld", 0)
@@ -185,16 +186,19 @@ public class MethodsPage extends AbstractClass {
                             entry.put(field, "0");
                         }
                     }
+                    // Fields from reports This month
                     if (fileName.equals("sales-reps-calls-this-month.csv") ) {
                         String companyRecordId = columns[1].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
                         isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
+
                     else if (fileName.equals("pmb-by-sales-reps-this-month.csv")) {
                         String companyRecordId = columns[5].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
                         isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
+
                     else if (fileName.equals("total-mrr-this-month-s-sales.csv")) {
                         String mrrValueStr = columns[1].trim();
                         double mrrValue = 0.0;
@@ -232,7 +236,7 @@ public class MethodsPage extends AbstractClass {
                     }
 
                     else if (fileName.equals("sales-rep-held-w-owner-meeting.csv") ) {
-                        String companyRecordId = columns[5].trim();
+                        String companyRecordId = columns[4].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
                         isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
@@ -279,8 +283,60 @@ public class MethodsPage extends AbstractClass {
                             entry.put(field, "0");
                         }
                     }
+                    // Fields from reports Last month
+                    if (fileName.equals("pmb-by-sales-reps-last-month.csv") && columns.length >= 6) {
+                        String companyRecordId = columns[5].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
 
-                    if (fileName.equals("total-mrr-last-month-s-sales.csv")) {
+                    else if (fileName.equals("sales-reps-calls-last-month.csv") && columns.length >= 2) {
+                        String companyRecordId = columns[1].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("meetings-booked-by-bdrs-last.csv") && columns.length >= 7) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("rep-set-nomh-w-gms-last.csv") ) {
+                        String companyRecordId = columns[4].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("bdr-set-nomh-w-gms-last.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("closed-won-deals-booked-by-bdrs.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("closed-won-deals-booked-by-sale.csv") ) {
+                        String companyRecordId = columns[6].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("sales-rep-total-deals-last-mo.csv") ) {
+                        String companyRecordId = columns[2].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+                    else if (fileName.equals("sales-rep-total-locations-las.csv") ) {
+                        String companyRecordId = columns[1].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("total-mrr-last-month-s-sales.csv")) {
                         String mrrValueStr = columns[1].trim();
                         double mrrValue = 0.0;
                         try {
@@ -297,52 +353,12 @@ public class MethodsPage extends AbstractClass {
                         }
                         entry.put(fieldName, String.valueOf(currentMRR + mrrValue));
                     }
-                    else if (fileName.equals("pmb-by-sales-reps-last-month.csv") && columns.length >= 6) {
-                        String companyRecordId = columns[5].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("sales-reps-calls-last-month.csv") && columns.length >= 2) {
-                        String companyRecordId = columns[1].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("meetings-booked-by-bdrs-last.csv") && columns.length >= 7) {
-                        String companyRecordId = columns[6].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("sales-rep-held-w-owner-meeting.csv") ) {
-                        String companyRecordId = columns[4].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("bdr-held-w-owner-meetings-la.csv") ) {
-                        String companyRecordId = columns[6].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("closed-won-deals-booked-by-bdrs.csv") ) {
-                        String companyRecordId = columns[6].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("closed-won-deals-booked-by-sale.csv") ) {
-                        String companyRecordId = columns[6].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
-                    else if (fileName.equals("sales-rep-total-locations-las.csv") ) {
-                        String companyRecordId = columns[1].trim();
-                        String uniqueKey = salesRep + "," + companyRecordId;
-                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
-                    }
+
                     else if (fileName.equals("gm-meetings-held-last-month.csv") ) {
                         String companyRecordId = columns[3].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
                         isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
-
 
                     else {
                         int currentCount = Integer.parseInt(entry.getString(fieldName));
