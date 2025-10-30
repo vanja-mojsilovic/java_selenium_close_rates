@@ -107,7 +107,9 @@ public class MethodsPage extends AbstractClass {
                     entry.optInt("Calls", 0),
                     entry.optInt("BdrMb", 0),
                     entry.optInt("RepSetNomh", 0),
+                    entry.optInt("RepSetNomhWithGm", 0),
                     entry.optInt("BdrNomh", 0),
+                    entry.optInt("BdrNomhWithGm", 0),
                     entry.optInt("BdrSetSales", 0),
                     entry.optInt("RepSetSales", 0),
                     entry.optInt("TotalDeals", 0),
@@ -302,8 +304,20 @@ public class MethodsPage extends AbstractClass {
                         isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
 
+                    else if (fileName.equals("sales-rep-held-w-owner-meeting.csv") ) {
+                        String companyRecordId = columns[4].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
                     else if (fileName.equals("rep-set-nomh-w-gms-last.csv") ) {
                         String companyRecordId = columns[4].trim();
+                        String uniqueKey = salesRep + "," + companyRecordId;
+                        isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
+                    }
+
+                    else if (fileName.equals("bdr-held-w-owner-meetings-la.csv") ) {
+                        String companyRecordId = columns[6].trim();
                         String uniqueKey = salesRep + "," + companyRecordId;
                         isUniqueAndCount(entry, uniqueKey, fieldName, seenKeys);
                     }
