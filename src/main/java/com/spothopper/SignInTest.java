@@ -63,7 +63,7 @@ public class SignInTest extends AbstractClass {
         String email = VariablesPage.EMAIL;
         MethodsPage methodsPage = new MethodsPage();
 
-        boolean last_month = true;
+        boolean last_month = false;
         boolean this_month = true;
 
         if(last_month){
