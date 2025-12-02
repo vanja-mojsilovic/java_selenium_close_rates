@@ -81,7 +81,7 @@ public class MethodsPage extends AbstractClass {
                     .setValueInputOption("RAW")
                     .execute();
             System.out.println("Updated range: " + response.getUpdatedRange());
-            System.out.println("Replaced " + rows.size() + " rows in 'close_rates_result' sheet.");
+            System.out.println("Replaced " + rows.size() + " rows in 'this_mont' sheet.");
 
 
         } catch (IOException | GeneralSecurityException e) {
@@ -124,7 +124,7 @@ public class MethodsPage extends AbstractClass {
                 .setValueInputOption("RAW")
                 .execute();
             System.out.println("Updated range: " + response.getUpdatedRange());
-            System.out.println("Replaced " + rows.size() + " rows in 'close_rates_result' sheet.");
+            System.out.println("Replaced " + rows.size() + " rows in 'last_month' sheet.");
 
 
         } catch (IOException | GeneralSecurityException e) {
